@@ -1,0 +1,25 @@
+CHOPCONF: 0x6C (EC)
+0 0 0 0 0000 0000 0 0 1 10 0 0 0 0 0001 100 0011
+0000 0000 0000 0011 0000 0000 1100 0011
+0x0003 00C3
+
+EC000300C3; // CHOPCONF: TOFF=3, HSTRT=4, HEND=1, TBL=2, CHM=0 (SpreadCycle), vsense = 1
+900006100A; // IHOLD_IRUN: IHOLD=10, IRUN=16 (max. current), IHOLDDELAY=6
+910000000A; // TPOWERDOWN=10: Delay before power down in stand still
+
+A4000003E8; // A1 = 1 000 First acceleration
+A50000C350; // V1 = 50 000 Acceleration threshold velocity V1
+A6000001F4; // AMAX = 500 Acceleration above V1
+A700030D40; // VMAX = 200 000
+A8000002BC; // DMAX = 700 Deceleration above V1
+AA00000578; // D1 = 1400 Deceleration below V1
+AB0000000A; // VSTOP = 10 Stop velocity (Near to zero)
+A000000000; // RAMPMODE = 0 (Target position move)
+
+ADFFFF3800; // XTARGET = -51200 (Move one rotation left (200*256 microsteps)
+
+2100000000; // Query XACTUAL – The next read access delivers XACTUAL
+
+
+FF00000000	//DRV_ENN low (enabled)
+FF00000001	//DRV_ENN high (disabled)
