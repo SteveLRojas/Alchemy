@@ -33,9 +33,9 @@
         "other_text_thickness": 0.15,
         "other_text_upright": false,
         "pads": {
-          "drill": 3.2,
-          "height": 6.4,
-          "width": 6.4
+          "drill": 0.762,
+          "height": 1.524,
+          "width": 1.524
         },
         "silk_line_width": 0.15,
         "silk_text_italic": false,
@@ -55,7 +55,50 @@
           "width": 0.0
         }
       ],
-      "drc_exclusions": [],
+      "drc_exclusions": [
+        "silk_over_copper|132000000|102040000|a0663edc-9a16-4091-8c90-7de5cb9151c8|a4013cf7-fd98-49e1-9b49-6cbd5b06cf5b",
+        "silk_over_copper|132000000|104580000|a0663edc-9a16-4091-8c90-7de5cb9151c8|875e7ed6-023f-49f7-a7fb-3279d32df595",
+        "silk_over_copper|132000000|107120000|a0663edc-9a16-4091-8c90-7de5cb9151c8|43e067e5-7981-4057-8379-4212690ac444",
+        "silk_over_copper|132000000|109660000|a0663edc-9a16-4091-8c90-7de5cb9151c8|8ec9acec-064f-4345-81ea-57f209bb0abe",
+        "silk_over_copper|132000000|112200000|a0663edc-9a16-4091-8c90-7de5cb9151c8|3ebf649e-5250-4619-a43b-229ff098d8f5",
+        "silk_over_copper|132000000|114740000|a0663edc-9a16-4091-8c90-7de5cb9151c8|6f7d0df5-32bf-430b-8658-f323ea4410dd",
+        "silk_over_copper|132000000|117280000|a0663edc-9a16-4091-8c90-7de5cb9151c8|58c62b21-c7c6-42d6-9191-b89fbb59edc9",
+        "silk_over_copper|132000000|119820000|a0663edc-9a16-4091-8c90-7de5cb9151c8|bf7a3e08-f567-4f29-a1ce-40557d81760a",
+        "silk_over_copper|132000000|122360000|a0663edc-9a16-4091-8c90-7de5cb9151c8|671bf3c5-5e47-48d7-9faf-77afd79af846",
+        "silk_over_copper|132000000|124960000|a0663edc-9a16-4091-8c90-7de5cb9151c8|8e215ae8-f6a3-4eb9-a421-55db4c68d76b",
+        "silk_over_copper|132000000|74040000|a0663edc-9a16-4091-8c90-7de5cb9151c8|4b0819f8-893a-4858-9f5e-e7d5229b9841",
+        "silk_over_copper|132000000|74160000|a0663edc-9a16-4091-8c90-7de5cb9151c8|df5b8383-d1c6-4232-8b44-2da8e046588a",
+        "silk_over_copper|132000000|74278095|a0663edc-9a16-4091-8c90-7de5cb9151c8|1de97879-c246-48ef-b7aa-e1d69644bd4d",
+        "silk_over_copper|132000000|74396190|a0663edc-9a16-4091-8c90-7de5cb9151c8|8f341550-b3da-4ae1-ac7d-f64a80ac218d",
+        "silk_over_copper|132000000|74514285|a0663edc-9a16-4091-8c90-7de5cb9151c8|ad9d4370-941a-42ba-a411-ad2ab06d3d40",
+        "silk_over_copper|132000000|74632380|a0663edc-9a16-4091-8c90-7de5cb9151c8|533ef3d0-ff65-4d25-84a4-c4fb6812532c",
+        "silk_over_copper|132000000|74750475|a0663edc-9a16-4091-8c90-7de5cb9151c8|b8d82d40-c0cd-4a5c-a60f-2d4695b06cac",
+        "silk_over_copper|132000000|74868570|a0663edc-9a16-4091-8c90-7de5cb9151c8|6ef7e06e-f182-418c-b7da-1b0275737639",
+        "silk_over_copper|132000000|74986665|a0663edc-9a16-4091-8c90-7de5cb9151c8|bc01503c-42b9-425e-ad64-9a82b0892da8",
+        "silk_over_copper|132000000|75104760|a0663edc-9a16-4091-8c90-7de5cb9151c8|f53d3ca3-e2fd-4523-b5d5-84ff7f6a8230",
+        "silk_over_copper|132000000|75222855|a0663edc-9a16-4091-8c90-7de5cb9151c8|191bcdcc-1759-49fa-84e6-1a14158117b2",
+        "silk_over_copper|132000000|75340950|a0663edc-9a16-4091-8c90-7de5cb9151c8|4766fd54-adc3-4b2a-b077-cac36b0e3811",
+        "silk_over_copper|132000000|75459045|a0663edc-9a16-4091-8c90-7de5cb9151c8|d6fd12b4-7405-4cdd-a0eb-8544f42f1296",
+        "silk_over_copper|132000000|75577140|a0663edc-9a16-4091-8c90-7de5cb9151c8|24cb0848-7ed2-4fc8-ae59-20a437eca868",
+        "silk_over_copper|132000000|75695235|a0663edc-9a16-4091-8c90-7de5cb9151c8|bbad6a5d-08bc-48dc-8a37-f0510622b8c4",
+        "silk_over_copper|132000000|75813330|a0663edc-9a16-4091-8c90-7de5cb9151c8|ca13e677-fdb8-4838-ba29-75b6d35c4de4",
+        "silk_over_copper|132000000|75931425|a0663edc-9a16-4091-8c90-7de5cb9151c8|a1b3ae2e-5379-45a4-851d-a202f36be19b",
+        "silk_over_copper|132000000|76049520|a0663edc-9a16-4091-8c90-7de5cb9151c8|fb02fb67-25cc-4369-ab49-6aa59afd45ff",
+        "silk_over_copper|132000000|76167615|a0663edc-9a16-4091-8c90-7de5cb9151c8|64966a9c-9168-4029-8d00-2715bd969a7c",
+        "silk_over_copper|132000000|76285710|a0663edc-9a16-4091-8c90-7de5cb9151c8|b8cd7ec2-2578-4dba-afd5-a8429b379d21",
+        "silk_over_copper|132000000|76403805|a0663edc-9a16-4091-8c90-7de5cb9151c8|59159b23-76c3-4d6d-a545-bfb3ecd5dd29",
+        "silk_over_copper|132000000|76521900|a0663edc-9a16-4091-8c90-7de5cb9151c8|55efd2fc-3dfc-40d2-b209-957930bc0b70",
+        "silk_over_copper|132000000|76640000|a0663edc-9a16-4091-8c90-7de5cb9151c8|002cb101-113e-473d-8128-15e4fd1e7ac3",
+        "silk_over_copper|132000000|79180000|a0663edc-9a16-4091-8c90-7de5cb9151c8|f7541634-642f-4918-b0ef-6bdb1c81f9b0",
+        "silk_over_copper|132000000|81720000|a0663edc-9a16-4091-8c90-7de5cb9151c8|88a4b058-51a4-4e4f-a34e-d6b2bc54c173",
+        "silk_over_copper|132000000|84260000|a0663edc-9a16-4091-8c90-7de5cb9151c8|34cddbe4-d7ef-4ab7-a3a3-b2d71ca2989c",
+        "silk_over_copper|132000000|86800000|a0663edc-9a16-4091-8c90-7de5cb9151c8|879b599e-dfbc-4569-ba07-e5e9d5ac8e58",
+        "silk_over_copper|132000000|89340000|a0663edc-9a16-4091-8c90-7de5cb9151c8|0fe3dd0f-9e01-4651-8770-e21bf88c3092",
+        "silk_over_copper|132000000|91880000|a0663edc-9a16-4091-8c90-7de5cb9151c8|7bc77540-e2b4-499d-ae25-c7468bf88e8f",
+        "silk_over_copper|132000000|94420000|a0663edc-9a16-4091-8c90-7de5cb9151c8|6a7cd35f-269c-4f04-95ce-31bddd319611",
+        "silk_over_copper|132000000|96960000|a0663edc-9a16-4091-8c90-7de5cb9151c8|314ded65-db38-4016-a1b6-4b7697b68b1f",
+        "silk_over_copper|132000000|99500000|a0663edc-9a16-4091-8c90-7de5cb9151c8|b3a67019-58ac-4ed7-afa1-db3400b21070"
+      ],
       "meta": {
         "version": 2
       },
@@ -63,7 +106,7 @@
         "annular_width": "error",
         "clearance": "error",
         "copper_edge_clearance": "error",
-        "courtyards_overlap": "ignore",
+        "courtyards_overlap": "error",
         "diff_pair_gap_out_of_range": "error",
         "diff_pair_uncoupled_length_too_long": "error",
         "drill_out_of_range": "error",
@@ -85,8 +128,8 @@
         "padstack": "error",
         "pth_inside_courtyard": "ignore",
         "shorting_items": "error",
-        "silk_over_copper": "ignore",
-        "silk_overlap": "ignore",
+        "silk_over_copper": "warning",
+        "silk_overlap": "warning",
         "skew_out_of_range": "error",
         "through_hole_pad_without_hole": "error",
         "too_many_vias": "error",
@@ -122,7 +165,9 @@
         0.0,
         0.3,
         0.4,
-        0.6
+        0.6,
+        1.0,
+        1.5
       ],
       "via_dimensions": [
         {
@@ -349,7 +394,7 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "Alchemy.kicad_pro",
+    "filename": "Alchemy_to_Landungsbruecke.kicad_pro",
     "version": 1
   },
   "net_settings": {
@@ -420,7 +465,7 @@
       "workbook_filename": ""
     },
     "page_layout_descr_file": "",
-    "plot_directory": "./",
+    "plot_directory": "",
     "spice_adjust_passive_values": false,
     "spice_external_command": "spice \"%I\"",
     "subpart_first_id": 65,
@@ -428,7 +473,7 @@
   },
   "sheets": [
     [
-      "28cda148-195a-4ea5-90ed-953b78896731",
+      "d4177b9d-cd4b-461f-83de-56e18b0b6f13",
       ""
     ]
   ],

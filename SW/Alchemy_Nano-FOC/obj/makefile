@@ -48,7 +48,7 @@ all: Alchemy_Nano-FOC.elf secondary-outputs
 Alchemy_Nano-FOC.elf: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: GNU RISC-V Cross C Linker'
-	riscv-none-embed-gcc -march=rv32imac -mabi=ilp32 -msmall-data-limit=8 -Os -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -Wunused -Wuninitialized  -g -T "C:\Users\Steve\Workspace\Alchemy_Nano-FOC\Ld\Link.ld" -nostartfiles -Xlinker --gc-sections -Wl,-Map,"Alchemy_Nano-FOC.map" --specs=nano.specs --specs=nosys.specs -o "Alchemy_Nano-FOC.elf" $(OBJS) $(USER_OBJS) $(LIBS)
+	riscv-none-embed-gcc -march=rv32imac -mabi=ilp32 -msmall-data-limit=8 -Os -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -Wunused -Wuninitialized  -g -T "C:\Users\Steve\repos\Alchemy\SW\Alchemy_Nano-FOC\Ld\Link.ld" -nostartfiles -Xlinker --gc-sections -Wl,-Map,"Alchemy_Nano-FOC.map" --specs=nano.specs --specs=nosys.specs -o "Alchemy_Nano-FOC.elf" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 

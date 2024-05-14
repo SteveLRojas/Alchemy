@@ -7,24 +7,24 @@
 #include "ch32v20x.h"
 #include "uart_fifo.h"
 
-volatile uint8_t uart1_rx_buf[UART_RX_BUF_SIZE] = {0};
-volatile uint8_t uart2_rx_buf[UART_RX_BUF_SIZE] = {0};
-volatile uint8_t uart3_rx_buf[UART_RX_BUF_SIZE] = {0};
+volatile uint8_t uart1_rx_buf[UART_RX_BUF_SIZE];
+volatile uint8_t uart2_rx_buf[UART_RX_BUF_SIZE];
+volatile uint8_t uart3_rx_buf[UART_RX_BUF_SIZE];
 
-volatile uint8_t uart1_tx_buf[UART_TX_BUF_SIZE] = {0};
-volatile uint8_t uart2_tx_buf[UART_TX_BUF_SIZE] = {0};
-volatile uint8_t uart3_tx_buf[UART_TX_BUF_SIZE] = {0};
+volatile uint8_t uart1_tx_buf[UART_TX_BUF_SIZE];
+volatile uint8_t uart2_tx_buf[UART_TX_BUF_SIZE];
+volatile uint8_t uart3_tx_buf[UART_TX_BUF_SIZE];
 
 
 volatile uint8_t* uart_rx_bufs[3] = {uart1_rx_buf, uart2_rx_buf, uart3_rx_buf};
-volatile uint16_t uart_rx_counts[3];
-volatile uint16_t uart_rx_fronts[3];
-volatile uint16_t uart_rx_backs[3];
+volatile uint16_t uart_rx_counts[3] = {0};
+volatile uint16_t uart_rx_fronts[3] = {0};
+volatile uint16_t uart_rx_backs[3] = {0};
 
 volatile uint8_t* uart_tx_bufs[3] = {uart1_tx_buf, uart2_tx_buf, uart3_tx_buf};
-volatile uint16_t uart_tx_counts[3];
-volatile uint16_t uart_tx_fronts[3];
-volatile uint16_t uart_tx_backs[3];
+volatile uint16_t uart_tx_counts[3] = {0};
+volatile uint16_t uart_tx_fronts[3] = {0};
+volatile uint16_t uart_tx_backs[3] = {0};
 
 
 // #############################

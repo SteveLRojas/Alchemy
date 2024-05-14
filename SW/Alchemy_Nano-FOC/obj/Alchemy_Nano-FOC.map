@@ -76,12 +76,12 @@ Common symbol       size              file
 
 errno               0x4               c:/mounriver/mrs_community/toolchain/risc-v embedded gcc/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32imac/ilp32\libg_nano.a(lib_a-reent.o)
 bitfield_16         0x4               ./User/support.o
-uart_rx_fronts      0x6               ./User/uart_fifo.o
-uart_tx_backs       0x6               ./User/uart_fifo.o
-uart_tx_counts      0x6               ./User/uart_fifo.o
-uart_tx_fronts      0x6               ./User/uart_fifo.o
-uart_rx_counts      0x6               ./User/uart_fifo.o
-uart_rx_backs       0x6               ./User/uart_fifo.o
+uart1_tx_buf        0x20              ./User/uart_fifo.o
+uart3_tx_buf        0x20              ./User/uart_fifo.o
+uart2_rx_buf        0x40              ./User/uart_fifo.o
+uart1_rx_buf        0x40              ./User/uart_fifo.o
+uart2_tx_buf        0x20              ./User/uart_fifo.o
+uart3_rx_buf        0x40              ./User/uart_fifo.o
 test_buff           0x2               ./User/support.o
 
 Discarded input sections
@@ -126,8 +126,8 @@ Discarded input sections
  .debug_aranges
                 0x0000000000000000       0x70 ./User/support.o
  .debug_ranges  0x0000000000000000       0xe0 ./User/support.o
- .debug_line    0x0000000000000000      0x94e ./User/support.o
- .debug_str     0x0000000000000000      0x7ae ./User/support.o
+ .debug_line    0x0000000000000000      0x95c ./User/support.o
+ .debug_str     0x0000000000000000      0x7b5 ./User/support.o
  .comment       0x0000000000000000       0x34 ./User/support.o
  .debug_frame   0x0000000000000000      0x168 ./User/support.o
  COMMON         0x0000000000000000        0x6 ./User/support.o
@@ -263,8 +263,8 @@ Discarded input sections
  .debug_aranges
                 0x0000000000000000      0x150 ./Peripheral/src/ch32v20x_adc.o
  .debug_ranges  0x0000000000000000      0x140 ./Peripheral/src/ch32v20x_adc.o
- .debug_line    0x0000000000000000     0x1ac7 ./Peripheral/src/ch32v20x_adc.o
- .debug_str     0x0000000000000000      0xbec ./Peripheral/src/ch32v20x_adc.o
+ .debug_line    0x0000000000000000     0x1adc ./Peripheral/src/ch32v20x_adc.o
+ .debug_str     0x0000000000000000      0xbf3 ./Peripheral/src/ch32v20x_adc.o
  .comment       0x0000000000000000       0x34 ./Peripheral/src/ch32v20x_adc.o
  .debug_frame   0x0000000000000000      0x2bc ./Peripheral/src/ch32v20x_adc.o
  .text          0x0000000000000000        0x0 ./Peripheral/src/ch32v20x_bkp.o
@@ -300,8 +300,8 @@ Discarded input sections
  .debug_aranges
                 0x0000000000000000       0x78 ./Peripheral/src/ch32v20x_bkp.o
  .debug_ranges  0x0000000000000000       0x68 ./Peripheral/src/ch32v20x_bkp.o
- .debug_line    0x0000000000000000      0x67b ./Peripheral/src/ch32v20x_bkp.o
- .debug_str     0x0000000000000000      0xa7a ./Peripheral/src/ch32v20x_bkp.o
+ .debug_line    0x0000000000000000      0x690 ./Peripheral/src/ch32v20x_bkp.o
+ .debug_str     0x0000000000000000      0xa81 ./Peripheral/src/ch32v20x_bkp.o
  .comment       0x0000000000000000       0x34 ./Peripheral/src/ch32v20x_bkp.o
  .debug_frame   0x0000000000000000       0xec ./Peripheral/src/ch32v20x_bkp.o
  .text          0x0000000000000000        0x0 ./Peripheral/src/ch32v20x_can.o
@@ -361,8 +361,8 @@ Discarded input sections
  .debug_aranges
                 0x0000000000000000       0xd8 ./Peripheral/src/ch32v20x_can.o
  .debug_ranges  0x0000000000000000       0xf8 ./Peripheral/src/ch32v20x_can.o
- .debug_line    0x0000000000000000     0x1a6e ./Peripheral/src/ch32v20x_can.o
- .debug_str     0x0000000000000000      0xb90 ./Peripheral/src/ch32v20x_can.o
+ .debug_line    0x0000000000000000     0x1a83 ./Peripheral/src/ch32v20x_can.o
+ .debug_str     0x0000000000000000      0xb97 ./Peripheral/src/ch32v20x_can.o
  .comment       0x0000000000000000       0x34 ./Peripheral/src/ch32v20x_can.o
  .debug_frame   0x0000000000000000      0x1a0 ./Peripheral/src/ch32v20x_can.o
  .text          0x0000000000000000        0x0 ./Peripheral/src/ch32v20x_crc.o
@@ -386,8 +386,8 @@ Discarded input sections
  .debug_aranges
                 0x0000000000000000       0x48 ./Peripheral/src/ch32v20x_crc.o
  .debug_ranges  0x0000000000000000       0x38 ./Peripheral/src/ch32v20x_crc.o
- .debug_line    0x0000000000000000      0x39d ./Peripheral/src/ch32v20x_crc.o
- .debug_str     0x0000000000000000      0x650 ./Peripheral/src/ch32v20x_crc.o
+ .debug_line    0x0000000000000000      0x3ab ./Peripheral/src/ch32v20x_crc.o
+ .debug_str     0x0000000000000000      0x657 ./Peripheral/src/ch32v20x_crc.o
  .comment       0x0000000000000000       0x34 ./Peripheral/src/ch32v20x_crc.o
  .debug_frame   0x0000000000000000       0x70 ./Peripheral/src/ch32v20x_crc.o
  .text          0x0000000000000000        0x0 ./Peripheral/src/ch32v20x_dbgmcu.o
@@ -409,8 +409,8 @@ Discarded input sections
  .debug_aranges
                 0x0000000000000000       0x40 ./Peripheral/src/ch32v20x_dbgmcu.o
  .debug_ranges  0x0000000000000000       0x48 ./Peripheral/src/ch32v20x_dbgmcu.o
- .debug_line    0x0000000000000000      0x33c ./Peripheral/src/ch32v20x_dbgmcu.o
- .debug_str     0x0000000000000000      0x60a ./Peripheral/src/ch32v20x_dbgmcu.o
+ .debug_line    0x0000000000000000      0x34a ./Peripheral/src/ch32v20x_dbgmcu.o
+ .debug_str     0x0000000000000000      0x611 ./Peripheral/src/ch32v20x_dbgmcu.o
  .comment       0x0000000000000000       0x34 ./Peripheral/src/ch32v20x_dbgmcu.o
  .debug_frame   0x0000000000000000       0x60 ./Peripheral/src/ch32v20x_dbgmcu.o
  .text          0x0000000000000000        0x0 ./Peripheral/src/ch32v20x_dma.o
@@ -443,8 +443,8 @@ Discarded input sections
  .debug_aranges
                 0x0000000000000000       0x60 ./Peripheral/src/ch32v20x_dma.o
  .debug_ranges  0x0000000000000000       0x50 ./Peripheral/src/ch32v20x_dma.o
- .debug_line    0x0000000000000000      0x78e ./Peripheral/src/ch32v20x_dma.o
- .debug_str     0x0000000000000000      0x7c8 ./Peripheral/src/ch32v20x_dma.o
+ .debug_line    0x0000000000000000      0x7a3 ./Peripheral/src/ch32v20x_dma.o
+ .debug_str     0x0000000000000000      0x7cf ./Peripheral/src/ch32v20x_dma.o
  .comment       0x0000000000000000       0x34 ./Peripheral/src/ch32v20x_dma.o
  .debug_frame   0x0000000000000000       0xc0 ./Peripheral/src/ch32v20x_dma.o
  .text          0x0000000000000000        0x0 ./Peripheral/src/ch32v20x_exti.o
@@ -472,8 +472,8 @@ Discarded input sections
  .debug_aranges
                 0x0000000000000000       0x50 ./Peripheral/src/ch32v20x_exti.o
  .debug_ranges  0x0000000000000000       0x40 ./Peripheral/src/ch32v20x_exti.o
- .debug_line    0x0000000000000000      0x5ad ./Peripheral/src/ch32v20x_exti.o
- .debug_str     0x0000000000000000      0x762 ./Peripheral/src/ch32v20x_exti.o
+ .debug_line    0x0000000000000000      0x5c2 ./Peripheral/src/ch32v20x_exti.o
+ .debug_str     0x0000000000000000      0x769 ./Peripheral/src/ch32v20x_exti.o
  .comment       0x0000000000000000       0x34 ./Peripheral/src/ch32v20x_exti.o
  .debug_frame   0x0000000000000000       0x90 ./Peripheral/src/ch32v20x_exti.o
  .text          0x0000000000000000        0x0 ./Peripheral/src/ch32v20x_flash.o
@@ -551,8 +551,8 @@ Discarded input sections
  .debug_aranges
                 0x0000000000000000      0x100 ./Peripheral/src/ch32v20x_flash.o
  .debug_ranges  0x0000000000000000       0xf0 ./Peripheral/src/ch32v20x_flash.o
- .debug_line    0x0000000000000000     0x1cf3 ./Peripheral/src/ch32v20x_flash.o
- .debug_str     0x0000000000000000      0xa6a ./Peripheral/src/ch32v20x_flash.o
+ .debug_line    0x0000000000000000     0x1d08 ./Peripheral/src/ch32v20x_flash.o
+ .debug_str     0x0000000000000000      0xa71 ./Peripheral/src/ch32v20x_flash.o
  .comment       0x0000000000000000       0x34 ./Peripheral/src/ch32v20x_flash.o
  .debug_frame   0x0000000000000000      0x2fc ./Peripheral/src/ch32v20x_flash.o
  .text          0x0000000000000000        0x0 ./Peripheral/src/ch32v20x_gpio.o
@@ -662,8 +662,8 @@ Discarded input sections
  .debug_aranges
                 0x0000000000000000      0x110 ./Peripheral/src/ch32v20x_i2c.o
  .debug_ranges  0x0000000000000000      0x100 ./Peripheral/src/ch32v20x_i2c.o
- .debug_line    0x0000000000000000     0x113e ./Peripheral/src/ch32v20x_i2c.o
- .debug_str     0x0000000000000000      0xab5 ./Peripheral/src/ch32v20x_i2c.o
+ .debug_line    0x0000000000000000     0x1153 ./Peripheral/src/ch32v20x_i2c.o
+ .debug_str     0x0000000000000000      0xabc ./Peripheral/src/ch32v20x_i2c.o
  .comment       0x0000000000000000       0x34 ./Peripheral/src/ch32v20x_i2c.o
  .debug_frame   0x0000000000000000      0x25c ./Peripheral/src/ch32v20x_i2c.o
  .text          0x0000000000000000        0x0 ./Peripheral/src/ch32v20x_iwdg.o
@@ -687,8 +687,8 @@ Discarded input sections
  .debug_aranges
                 0x0000000000000000       0x48 ./Peripheral/src/ch32v20x_iwdg.o
  .debug_ranges  0x0000000000000000       0x38 ./Peripheral/src/ch32v20x_iwdg.o
- .debug_line    0x0000000000000000      0x388 ./Peripheral/src/ch32v20x_iwdg.o
- .debug_str     0x0000000000000000      0x674 ./Peripheral/src/ch32v20x_iwdg.o
+ .debug_line    0x0000000000000000      0x39d ./Peripheral/src/ch32v20x_iwdg.o
+ .debug_str     0x0000000000000000      0x67b ./Peripheral/src/ch32v20x_iwdg.o
  .comment       0x0000000000000000       0x34 ./Peripheral/src/ch32v20x_iwdg.o
  .debug_frame   0x0000000000000000       0x70 ./Peripheral/src/ch32v20x_iwdg.o
  .text          0x0000000000000000        0x0 ./Peripheral/src/ch32v20x_misc.o
@@ -712,8 +712,8 @@ Discarded input sections
  .debug_aranges
                 0x0000000000000000       0x38 ./Peripheral/src/ch32v20x_opa.o
  .debug_ranges  0x0000000000000000       0x28 ./Peripheral/src/ch32v20x_opa.o
- .debug_line    0x0000000000000000      0x435 ./Peripheral/src/ch32v20x_opa.o
- .debug_str     0x0000000000000000      0x68a ./Peripheral/src/ch32v20x_opa.o
+ .debug_line    0x0000000000000000      0x44a ./Peripheral/src/ch32v20x_opa.o
+ .debug_str     0x0000000000000000      0x691 ./Peripheral/src/ch32v20x_opa.o
  .comment       0x0000000000000000       0x34 ./Peripheral/src/ch32v20x_opa.o
  .debug_frame   0x0000000000000000       0x50 ./Peripheral/src/ch32v20x_opa.o
  .text          0x0000000000000000        0x0 ./Peripheral/src/ch32v20x_pwr.o
@@ -753,8 +753,8 @@ Discarded input sections
  .debug_aranges
                 0x0000000000000000       0x88 ./Peripheral/src/ch32v20x_pwr.o
  .debug_ranges  0x0000000000000000       0xa8 ./Peripheral/src/ch32v20x_pwr.o
- .debug_line    0x0000000000000000      0xa87 ./Peripheral/src/ch32v20x_pwr.o
- .debug_str     0x0000000000000000      0x822 ./Peripheral/src/ch32v20x_pwr.o
+ .debug_line    0x0000000000000000      0xa9c ./Peripheral/src/ch32v20x_pwr.o
+ .debug_str     0x0000000000000000      0x829 ./Peripheral/src/ch32v20x_pwr.o
  .comment       0x0000000000000000       0x34 ./Peripheral/src/ch32v20x_pwr.o
  .debug_frame   0x0000000000000000       0xfc ./Peripheral/src/ch32v20x_pwr.o
  .text          0x0000000000000000        0x0 ./Peripheral/src/ch32v20x_rcc.o
@@ -861,8 +861,8 @@ Discarded input sections
  .debug_aranges
                 0x0000000000000000       0x80 ./Peripheral/src/ch32v20x_rtc.o
  .debug_ranges  0x0000000000000000       0x70 ./Peripheral/src/ch32v20x_rtc.o
- .debug_line    0x0000000000000000      0x7be ./Peripheral/src/ch32v20x_rtc.o
- .debug_str     0x0000000000000000      0x7c1 ./Peripheral/src/ch32v20x_rtc.o
+ .debug_line    0x0000000000000000      0x7d3 ./Peripheral/src/ch32v20x_rtc.o
+ .debug_str     0x0000000000000000      0x7c8 ./Peripheral/src/ch32v20x_rtc.o
  .comment       0x0000000000000000       0x34 ./Peripheral/src/ch32v20x_rtc.o
  .debug_frame   0x0000000000000000      0x114 ./Peripheral/src/ch32v20x_rtc.o
  .text          0x0000000000000000        0x0 ./Peripheral/src/ch32v20x_spi.o
@@ -1095,8 +1095,8 @@ Discarded input sections
  .debug_aranges
                 0x0000000000000000      0x2d0 ./Peripheral/src/ch32v20x_tim.o
  .debug_ranges  0x0000000000000000      0x308 ./Peripheral/src/ch32v20x_tim.o
- .debug_line    0x0000000000000000     0x31ec ./Peripheral/src/ch32v20x_tim.o
- .debug_str     0x0000000000000000     0x1250 ./Peripheral/src/ch32v20x_tim.o
+ .debug_line    0x0000000000000000     0x3201 ./Peripheral/src/ch32v20x_tim.o
+ .debug_str     0x0000000000000000     0x1257 ./Peripheral/src/ch32v20x_tim.o
  .comment       0x0000000000000000       0x34 ./Peripheral/src/ch32v20x_tim.o
  .debug_frame   0x0000000000000000      0x668 ./Peripheral/src/ch32v20x_tim.o
  .text          0x0000000000000000        0x0 ./Peripheral/src/ch32v20x_wwdg.o
@@ -1124,8 +1124,8 @@ Discarded input sections
  .debug_aranges
                 0x0000000000000000       0x58 ./Peripheral/src/ch32v20x_wwdg.o
  .debug_ranges  0x0000000000000000       0x48 ./Peripheral/src/ch32v20x_wwdg.o
- .debug_line    0x0000000000000000      0x4aa ./Peripheral/src/ch32v20x_wwdg.o
- .debug_str     0x0000000000000000      0x687 ./Peripheral/src/ch32v20x_wwdg.o
+ .debug_line    0x0000000000000000      0x4bf ./Peripheral/src/ch32v20x_wwdg.o
+ .debug_str     0x0000000000000000      0x68e ./Peripheral/src/ch32v20x_wwdg.o
  .comment       0x0000000000000000       0x34 ./Peripheral/src/ch32v20x_wwdg.o
  .debug_frame   0x0000000000000000       0xa8 ./Peripheral/src/ch32v20x_wwdg.o
  .text          0x0000000000000000        0x0 ./Debug/debug.o
@@ -1180,7 +1180,7 @@ Discarded input sections
                 0x0000000000000000       0xb0 ./Core/core_riscv.o
  .debug_ranges  0x0000000000000000       0xa0 ./Core/core_riscv.o
  .debug_line    0x0000000000000000      0x440 ./Core/core_riscv.o
- .debug_str     0x0000000000000000      0x271 ./Core/core_riscv.o
+ .debug_str     0x0000000000000000      0x278 ./Core/core_riscv.o
  .comment       0x0000000000000000       0x34 ./Core/core_riscv.o
  .debug_frame   0x0000000000000000      0x140 ./Core/core_riscv.o
  .text          0x0000000000000000        0x0 c:/mounriver/mrs_community/toolchain/risc-v embedded gcc/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32imac/ilp32\libg_nano.a(lib_a-memcpy.o)
@@ -1713,23 +1713,9 @@ END GROUP
                 0x0000000000002390                . = ALIGN (0x4)
 
 .rela.dyn       0x0000000000002390        0x0
- .rela.text.uart_rx_num_used
+ .rela.data.uart_rx_bufs
                 0x0000000000002390        0x0 ./User/ch32v20x_it.o
- .rela.text.uart_rx_empty
-                0x0000000000002390        0x0 ./User/ch32v20x_it.o
- .rela.text.uart_rx_push
-                0x0000000000002390        0x0 ./User/ch32v20x_it.o
- .rela.text.uart_rx_pop
-                0x0000000000002390        0x0 ./User/ch32v20x_it.o
- .rela.text.uart_tx_num_used
-                0x0000000000002390        0x0 ./User/ch32v20x_it.o
- .rela.text.uart_tx_num_free
-                0x0000000000002390        0x0 ./User/ch32v20x_it.o
- .rela.text.uart_tx_push
-                0x0000000000002390        0x0 ./User/ch32v20x_it.o
- .rela.text.uart_tx_pop
-                0x0000000000002390        0x0 ./User/ch32v20x_it.o
- .rela.text.uart_tx_write
+ .rela.data.uart_tx_bufs
                 0x0000000000002390        0x0 ./User/ch32v20x_it.o
  .rela.init     0x0000000000002390        0x0 ./User/ch32v20x_it.o
  .rela.vector   0x0000000000002390        0x0 ./User/ch32v20x_it.o
@@ -1853,61 +1839,65 @@ END GROUP
                 0x00000000200000a0                . = ALIGN (0x4)
                 0x00000000200000a0                PROVIDE (_edata = .)
 
-.bss            0x00000000200000a0      0x168 load address 0x0000000000002430
+.bss            0x00000000200000a0      0x164 load address 0x0000000000002430
                 0x00000000200000a0                . = ALIGN (0x4)
                 0x00000000200000a0                PROVIDE (_sbss = .)
  *(.sbss*)
+ .sbss.uart_rx_backs
+                0x00000000200000a0        0x6 ./User/uart_fifo.o
+                0x00000000200000a0                uart_rx_backs
+ *fill*         0x00000000200000a6        0x2 
+ .sbss.uart_rx_counts
+                0x00000000200000a8        0x6 ./User/uart_fifo.o
+                0x00000000200000a8                uart_rx_counts
+ *fill*         0x00000000200000ae        0x2 
+ .sbss.uart_rx_fronts
+                0x00000000200000b0        0x6 ./User/uart_fifo.o
+                0x00000000200000b0                uart_rx_fronts
+ *fill*         0x00000000200000b6        0x2 
+ .sbss.uart_tx_backs
+                0x00000000200000b8        0x6 ./User/uart_fifo.o
+                0x00000000200000b8                uart_tx_backs
+ *fill*         0x00000000200000be        0x2 
+ .sbss.uart_tx_counts
+                0x00000000200000c0        0x6 ./User/uart_fifo.o
+                0x00000000200000c0                uart_tx_counts
+ *fill*         0x00000000200000c6        0x2 
+ .sbss.uart_tx_fronts
+                0x00000000200000c8        0x6 ./User/uart_fifo.o
+                0x00000000200000c8                uart_tx_fronts
  .sbss.MCU_Version
-                0x00000000200000a0        0x1 ./Peripheral/src/ch32v20x_gpio.o
-                0x00000000200000a0                MCU_Version
- *fill*         0x00000000200000a1        0x3 
+                0x00000000200000ce        0x1 ./Peripheral/src/ch32v20x_gpio.o
+                0x00000000200000ce                MCU_Version
+ *fill*         0x00000000200000cf        0x1 
  .sbss.NVIC_Priority_Group
-                0x00000000200000a4        0x4 ./Peripheral/src/ch32v20x_misc.o
-                0x00000000200000a4                NVIC_Priority_Group
- .sbss.p_ms     0x00000000200000a8        0x2 ./Debug/debug.o
- .sbss.p_us     0x00000000200000aa        0x1 ./Debug/debug.o
- *fill*         0x00000000200000ab        0x1 
+                0x00000000200000d0        0x4 ./Peripheral/src/ch32v20x_misc.o
+                0x00000000200000d0                NVIC_Priority_Group
+ .sbss.p_ms     0x00000000200000d4        0x2 ./Debug/debug.o
+ .sbss.p_us     0x00000000200000d6        0x1 ./Debug/debug.o
+ *fill*         0x00000000200000d7        0x1 
  .sbss.__malloc_free_list
-                0x00000000200000ac        0x4 c:/mounriver/mrs_community/toolchain/risc-v embedded gcc/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32imac/ilp32\libg_nano.a(lib_a-nano-mallocr.o)
-                0x00000000200000ac                __malloc_free_list
+                0x00000000200000d8        0x4 c:/mounriver/mrs_community/toolchain/risc-v embedded gcc/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32imac/ilp32\libg_nano.a(lib_a-nano-mallocr.o)
+                0x00000000200000d8                __malloc_free_list
  .sbss.__malloc_sbrk_start
-                0x00000000200000b0        0x4 c:/mounriver/mrs_community/toolchain/risc-v embedded gcc/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32imac/ilp32\libg_nano.a(lib_a-nano-mallocr.o)
-                0x00000000200000b0                __malloc_sbrk_start
+                0x00000000200000dc        0x4 c:/mounriver/mrs_community/toolchain/risc-v embedded gcc/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32imac/ilp32\libg_nano.a(lib_a-nano-mallocr.o)
+                0x00000000200000dc                __malloc_sbrk_start
  *(.gnu.linkonce.sb.*)
  *(.bss*)
- .bss.uart1_rx_buf
-                0x00000000200000b4       0x40 ./User/uart_fifo.o
-                0x00000000200000b4                uart1_rx_buf
- .bss.uart1_tx_buf
-                0x00000000200000f4       0x20 ./User/uart_fifo.o
-                0x00000000200000f4                uart1_tx_buf
- .bss.uart2_rx_buf
-                0x0000000020000114       0x40 ./User/uart_fifo.o
-                0x0000000020000114                uart2_rx_buf
- .bss.uart2_tx_buf
-                0x0000000020000154       0x20 ./User/uart_fifo.o
-                0x0000000020000154                uart2_tx_buf
- .bss.uart3_rx_buf
-                0x0000000020000174       0x40 ./User/uart_fifo.o
-                0x0000000020000174                uart3_rx_buf
- .bss.uart3_tx_buf
-                0x00000000200001b4       0x20 ./User/uart_fifo.o
-                0x00000000200001b4                uart3_tx_buf
  *(.gnu.linkonce.b.*)
  *(COMMON*)
- COMMON         0x00000000200001d4       0x2e ./User/uart_fifo.o
-                0x00000000200001d4                uart_rx_fronts
-                0x00000000200001dc                uart_tx_backs
-                0x00000000200001e4                uart_tx_counts
-                0x00000000200001ec                uart_tx_fronts
-                0x00000000200001f4                uart_rx_counts
-                0x00000000200001fc                uart_rx_backs
- *fill*         0x0000000020000202        0x2 
- COMMON         0x0000000020000204        0x4 c:/mounriver/mrs_community/toolchain/risc-v embedded gcc/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32imac/ilp32\libg_nano.a(lib_a-reent.o)
-                0x0000000020000204                errno
-                0x0000000020000208                . = ALIGN (0x4)
-                0x0000000020000208                PROVIDE (_ebss = .)
-                0x0000000020000208                PROVIDE (_end = _ebss)
+ COMMON         0x00000000200000e0      0x120 ./User/uart_fifo.o
+                0x00000000200000e0                uart1_tx_buf
+                0x0000000020000100                uart3_tx_buf
+                0x0000000020000120                uart2_rx_buf
+                0x0000000020000160                uart1_rx_buf
+                0x00000000200001a0                uart2_tx_buf
+                0x00000000200001c0                uart3_rx_buf
+ COMMON         0x0000000020000200        0x4 c:/mounriver/mrs_community/toolchain/risc-v embedded gcc/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32imac/ilp32\libg_nano.a(lib_a-reent.o)
+                0x0000000020000200                errno
+                0x0000000020000204                . = ALIGN (0x4)
+                0x0000000020000204                PROVIDE (_ebss = .)
+                0x0000000020000204                PROVIDE (_end = _ebss)
                 [!provide]                        PROVIDE (end = .)
 
 .stack          0x0000000020004800      0x800
@@ -1982,42 +1972,42 @@ OUTPUT(Alchemy_Nano-FOC.elf elf32-littleriscv)
  .debug_ranges  0x00000000000003f8       0xc8 ./Peripheral/src/ch32v20x_spi.o
  .debug_ranges  0x00000000000004c0       0x30 ./Debug/debug.o
 
-.debug_line     0x0000000000000000     0x69e4
- .debug_line    0x0000000000000000      0x218 ./User/ch32v20x_it.o
- .debug_line    0x0000000000000218      0x845 ./User/main.o
- .debug_line    0x0000000000000a5d      0x684 ./User/system_ch32v20x.o
- .debug_line    0x00000000000010e1     0x1191 ./User/uart.o
- .debug_line    0x0000000000002272      0xbad ./User/uart_fifo.o
- .debug_line    0x0000000000002e1f      0x25f ./Startup/startup_ch32v20x_D6.o
- .debug_line    0x000000000000307e     0x103d ./Peripheral/src/ch32v20x_gpio.o
- .debug_line    0x00000000000040bb      0x4a8 ./Peripheral/src/ch32v20x_misc.o
- .debug_line    0x0000000000004563     0x1146 ./Peripheral/src/ch32v20x_rcc.o
- .debug_line    0x00000000000056a9      0xe0c ./Peripheral/src/ch32v20x_spi.o
- .debug_line    0x00000000000064b5      0x52f ./Debug/debug.o
+.debug_line     0x0000000000000000     0x6ae1
+ .debug_line    0x0000000000000000      0x21f ./User/ch32v20x_it.o
+ .debug_line    0x000000000000021f      0x861 ./User/main.o
+ .debug_line    0x0000000000000a80      0x699 ./User/system_ch32v20x.o
+ .debug_line    0x0000000000001119     0x11a6 ./User/uart.o
+ .debug_line    0x00000000000022bf      0xbf4 ./User/uart_fifo.o
+ .debug_line    0x0000000000002eb3      0x25f ./Startup/startup_ch32v20x_D6.o
+ .debug_line    0x0000000000003112     0x1052 ./Peripheral/src/ch32v20x_gpio.o
+ .debug_line    0x0000000000004164      0x4bd ./Peripheral/src/ch32v20x_misc.o
+ .debug_line    0x0000000000004621     0x115b ./Peripheral/src/ch32v20x_rcc.o
+ .debug_line    0x000000000000577c      0xe21 ./Peripheral/src/ch32v20x_spi.o
+ .debug_line    0x000000000000659d      0x544 ./Debug/debug.o
 
-.debug_str      0x0000000000000000     0x1b3d
- .debug_str     0x0000000000000000      0x517 ./User/ch32v20x_it.o
-                                        0x58b (size before relaxing)
- .debug_str     0x0000000000000517      0x41a ./User/main.o
-                                        0x991 (size before relaxing)
- .debug_str     0x0000000000000931      0x10b ./User/system_ch32v20x.o
-                                        0x6a1 (size before relaxing)
- .debug_str     0x0000000000000a3c      0x5fe ./User/uart.o
-                                        0xc57 (size before relaxing)
- .debug_str     0x000000000000103a      0x13e ./User/uart_fifo.o
-                                        0x76a (size before relaxing)
- .debug_str     0x0000000000001178       0x2d ./Startup/startup_ch32v20x_D6.o
-                                         0x5b (size before relaxing)
- .debug_str     0x00000000000011a5      0x24a ./Peripheral/src/ch32v20x_gpio.o
-                                        0x952 (size before relaxing)
- .debug_str     0x00000000000013ef       0xf5 ./Peripheral/src/ch32v20x_misc.o
-                                        0xa5a (size before relaxing)
- .debug_str     0x00000000000014e4      0x350 ./Peripheral/src/ch32v20x_rcc.o
-                                        0xa91 (size before relaxing)
- .debug_str     0x0000000000001834      0x2a7 ./Peripheral/src/ch32v20x_spi.o
-                                        0xa7c (size before relaxing)
- .debug_str     0x0000000000001adb       0x62 ./Debug/debug.o
-                                        0x68e (size before relaxing)
+.debug_str      0x0000000000000000     0x1b44
+ .debug_str     0x0000000000000000      0x51e ./User/ch32v20x_it.o
+                                        0x592 (size before relaxing)
+ .debug_str     0x000000000000051e      0x41a ./User/main.o
+                                        0x998 (size before relaxing)
+ .debug_str     0x0000000000000938      0x10b ./User/system_ch32v20x.o
+                                        0x6a8 (size before relaxing)
+ .debug_str     0x0000000000000a43      0x5fe ./User/uart.o
+                                        0xc5e (size before relaxing)
+ .debug_str     0x0000000000001041      0x13e ./User/uart_fifo.o
+                                        0x771 (size before relaxing)
+ .debug_str     0x000000000000117f       0x2d ./Startup/startup_ch32v20x_D6.o
+                                         0x62 (size before relaxing)
+ .debug_str     0x00000000000011ac      0x24a ./Peripheral/src/ch32v20x_gpio.o
+                                        0x959 (size before relaxing)
+ .debug_str     0x00000000000013f6       0xf5 ./Peripheral/src/ch32v20x_misc.o
+                                        0xa61 (size before relaxing)
+ .debug_str     0x00000000000014eb      0x350 ./Peripheral/src/ch32v20x_rcc.o
+                                        0xa98 (size before relaxing)
+ .debug_str     0x000000000000183b      0x2a7 ./Peripheral/src/ch32v20x_spi.o
+                                        0xa83 (size before relaxing)
+ .debug_str     0x0000000000001ae2       0x62 ./Debug/debug.o
+                                        0x695 (size before relaxing)
 
 .comment        0x0000000000000000       0x33
  .comment       0x0000000000000000       0x33 ./User/ch32v20x_it.o
