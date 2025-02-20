@@ -25,163 +25,137 @@
 //* main.c                        SOURCE FILE      *
 //* Copyright (C) 2024 Esteban Looser-Rojas.       *
 //* Contains Alchemy firmware for the Nano-FOC     *
-//* project. Currently using UART1 for the host,   *
+//* project. Currently using CDC for the host,     *
 //* and SPI1 for the Nano-FOC target.              *
 //**************************************************
 
-#include "debug.h"
 #include "ch32v20x.h"
-#include "uart.h"
+#include "ch32v203_core.h"
+#include "debug.h"
+#include "fifo.h"
+#include "ch32v203_uart.h"
+#include "ch32v203_gpio.h"
+#include "ch32v203_spi.h"
+#include "ch32v203_rcc.h"
+#include "ch32v203_afio.h"
+#include "ch32v203_usbd_cdc.h"
 
-/* Global typedef */
+//Pins:
+// USART1_TX = PA9
+// USART1_RX = PA10
+// UDM = PA11
+// UDP = PA12
+// SPI1_NCS = PA15
+// SPI1_SCK = PB3
+// SPI1_MISO = PB4
+// SPI1_MOSI = PB5
 
-/* Global define */
-#define PORT_UART1 GPIOA
-#define PORT_UART2 GPIOA
-#define PORT_SPI1 GPIOB
-#define PORT_SPI1_NCS GPIOA
-
-#define PIN_UART1_TX GPIO_Pin_9
-#define PIN_UART1_RX GPIO_Pin_10
-#define PIN_UART2_TX GPIO_Pin_2
-#define PIN_UART2_RX GPIO_Pin_3
-#define PIN_SPI1_MOSI GPIO_Pin_5
-#define PIN_SPI1_MISO GPIO_Pin_4
-#define PIN_SPI1_SCK GPIO_Pin_3
-#define PIN_SPI1_NCS GPIO_Pin_15
-
-/* Global Variable */
-
-void platform_init()
-{
-	//RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO | RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB | RCC_APB2Periph_GPIOC | RCC_APB2Periph_SPI1 | RCC_APB2Periph_USART1, ENABLE);
-
-	GPIO_InitTypeDef GPIO_InitStructure = {0};
-	SPI_InitTypeDef SPI_InitStructure={0};
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-
-	//GPIOA
-	GPIO_InitStructure.GPIO_Pin = (PIN_SPI1_NCS);
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-	GPIO_Init(PORT_SPI1_NCS, &GPIO_InitStructure);
-
-	GPIO_InitStructure.GPIO_Pin = (PIN_UART1_TX);
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
-	GPIO_Init(PORT_UART1, &GPIO_InitStructure);
-
-	GPIO_InitStructure.GPIO_Pin = (PIN_UART1_RX);
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-	GPIO_Init(PORT_UART1, &GPIO_InitStructure);
-
-	//GPIOB
-	GPIO_InitStructure.GPIO_Pin = (PIN_SPI1_SCK | PIN_SPI1_MOSI);
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
-	GPIO_Init(PORT_SPI1, &GPIO_InitStructure);
-
-	GPIO_InitStructure.GPIO_Pin = PIN_SPI1_MISO;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-	GPIO_Init(PORT_SPI1, &GPIO_InitStructure);
-
-	//GPIOC
-	//GPIO_InitStructure.GPIO_Pin = (GPIO_Pin_13 | GPIO_Pin_14 | GPIO_Pin_15);
-	//GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-	//GPIO_Init(GPIOC, &GPIO_InitStructure);
-
-	SPI_InitStructure.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
-	SPI_InitStructure.SPI_Mode = SPI_Mode_Master;
-	SPI_InitStructure.SPI_DataSize = SPI_DataSize_8b;
-	SPI_InitStructure.SPI_CPOL = SPI_CPOL_Low;
-	SPI_InitStructure.SPI_CPHA = SPI_CPHA_1Edge;
-	SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;
-	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_64;	//TODO: adjust
-	SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
-	SPI_InitStructure.SPI_CRCPolynomial = 7;
-
-	SPI_Init(SPI1, &SPI_InitStructure);
-	SPI_Cmd(SPI1, ENABLE);
-
-	//GPIO_PinRemapConfig(GPIO_Remap_USART2, ENABLE);
-	GPIO_PinRemapConfig(GPIO_Remap_SPI1, ENABLE);
-
-	GPIO_WriteBit(PORT_SPI1_NCS, PIN_SPI1_NCS, Bit_SET);
-}
 
 void nano_write_reg(uint8_t addr, uint16_t data)
 {
-	uint8_t* data_bytes = (uint8_t*)((void*)(&data));
+	gpio_clear_pin(GPIOA, GPIO_PIN_15);
 
-	GPIO_WriteBit(PORT_SPI1_NCS, PIN_SPI1_NCS, Bit_RESET);
-	spi_transfer(SPI1, (uint16_t)addr);
-	spi_transfer(SPI1, (uint16_t)(data_bytes[1]));
-	spi_transfer(SPI1, (uint16_t)(data_bytes[0]));
-	GPIO_WriteBit(PORT_SPI1_NCS, PIN_SPI1_NCS, Bit_SET);
+	spi_transfer(SPI1, addr);
+	spi_transfer(SPI1, ((uint8_t*)&data)[1]);
+	spi_transfer(SPI1, ((uint8_t*)&data)[0]);
+
+	gpio_set_pin(GPIOA, GPIO_PIN_15);
 	return;
 }
 
 uint16_t nano_read_reg(uint8_t addr)
 {
-	uint16_t read_val;
-	uint8_t* data_bytes = (uint8_t*)((void*)(&read_val));
+	uint32_t read_val;
 
-	GPIO_WriteBit(PORT_SPI1_NCS, PIN_SPI1_NCS, Bit_RESET);
-	spi_transfer(SPI1, (uint16_t)addr);
+	gpio_clear_pin(GPIOA, GPIO_PIN_15);
+	spi_transfer(SPI1, addr);
 	spi_transfer(SPI1, 0x0000);
 	spi_transfer(SPI1, 0x0000);
-	GPIO_WriteBit(PORT_SPI1_NCS, PIN_SPI1_NCS, Bit_SET);
+	gpio_set_pin(GPIOA, GPIO_PIN_15);
 	Delay_Us(1);
 
-	GPIO_WriteBit(PORT_SPI1_NCS, PIN_SPI1_NCS, Bit_RESET);
-	spi_transfer(SPI1, (uint16_t)addr);
-	data_bytes[1] = (uint8_t)spi_transfer(SPI1, 0x0000);
-	data_bytes[0] = (uint8_t)spi_transfer(SPI1, 0x0000);
-	GPIO_WriteBit(PORT_SPI1_NCS, PIN_SPI1_NCS, Bit_SET);
+	gpio_clear_pin(GPIOA, GPIO_PIN_15);
+	(void)spi_transfer(SPI1, addr);
+	((uint8_t*)&read_val)[1] = (uint8_t)spi_transfer(SPI1, 0x0000);
+	((uint8_t*)&read_val)[0] = (uint8_t)spi_transfer(SPI1, 0x0000);
+	gpio_set_pin(GPIOA, GPIO_PIN_15);
 
 	return read_val;
 }
 
-/*********************************************************************
- * @fn      main
- *
- * @brief   Main program.
- *
- * @return  none
- */
 int main(void)
 {
-    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
-    platform_init();
-    Delay_Init();
-    uart_init(115200, 0, 0);
+	rcc_apb2_clk_enable(RCC_AFIOEN | RCC_IOPAEN | RCC_IOPBEN | RCC_IOPCEN | RCC_TIM1EN | RCC_SPI1EN | RCC_USART1EN);
+	rcc_apb1_clk_enable(RCC_TIM2EN | RCC_USBEN | RCC_USART2EN);
 
-    printf("SystemClk:%d\r\n", SystemCoreClock);
+	gpio_set_mode(GPIOA, GPIO_DIR_SPD_OUT_50MHZ | GPIO_MODE_PP_OUT, GPIO_PIN_15);	//SPI1_NCS
+	gpio_set_mode(GPIOA, GPIO_DIR_SPD_OUT_50MHZ | GPIO_MODE_AFIO_PP, GPIO_PIN_9);	//USART1_TX
+	gpio_set_mode(GPIOA, GPIO_DIR_SPD_OUT_50MHZ | GPIO_MODE_PULL_IN, GPIO_PIN_10);	//USART1_RX
+	gpio_set_mode(GPIOB, GPIO_DIR_SPD_OUT_50MHZ | GPIO_MODE_AFIO_PP, GPIO_PIN_3 | GPIO_PIN_5);	//SPI1_SCK, SPI1_MOSI
+	gpio_set_mode(GPIOB, GPIO_DIR_SPD_IN | GPIO_MODE_PULL_IN, GPIO_PIN_4);			//SPI1_MISO
+
+	gpio_set_pin(GPIOA, GPIO_PIN_15 | GPIO_PIN_10);	//SPI1_NCS high, pull-up USART1_RX
+	gpio_set_pin(GPIOB, GPIO_PIN_4);	//pull-up SPI1_MISO
+
+	Delay_Init();
+	uart_init(USART1, 115200);
+	core_enable_irq(USART1_IRQn);
+
+	cdc_init();
+	cdc_set_serial_state(0x03);
+	uint8_t prev_control_line_state = cdc_control_line_state;
+	while(!cdc_config);	//Wait for host to configure the CDC interface
     printf("Alchemy - Nano-FOC\n");
 
-    if(uart_bytes_available(USART1))
-    {
-    	printf("There is something fishy in the RX buffer...\n");
-    }
+    printf("SYSCLK: %u\n", rcc_compute_sysclk_freq());
+	printf("HCLK: %u\n", rcc_compute_hclk_freq());
+	printf("PCLK1: %u\n", rcc_compute_pclk1_freq());
+	printf("PCLK2: %u\n", rcc_compute_pclk2_freq());
+	printf("ADCCLK: %u\n", rcc_compute_adcclk());
 
-    uint8_t addr;
-	uint16_t reg_data;
-	uint8_t* reg_bytes = (uint8_t*)((void*)(&reg_data));
+	spi_init(SPI1, SPI_8_BIT | SPI_CLK_DIV_8 | SPI_MODE_1);
+	afio_pcfr1_remap(AFIO_PCFR1_SPI1_REMAP);
+
+	if(uart_bytes_available(uart1_rx_fifo))
+	{
+		printf("There is something fishy in the UART1 RX buffer...\n");
+	}
+
+	if(cdc_bytes_available())
+	{
+		printf("There is something fishy in the CDC RX buffer...\n");
+	}
+
+	uint8_t datagram[4];
+	uint8_t address;
+	uint16_t data;
 	while(1)
 	{
-		addr = uart_read_byte(USART1);
-
-		if(addr & 0x80)	//handle write
+		if((cdc_bytes_available() >= 3) && (cdc_peek() & 0x80))	//handle write datagram
 		{
-			reg_bytes[1] = uart_read_byte(USART1);
-			reg_bytes[0] = uart_read_byte(USART1);
+			cdc_read_bytes(datagram, 3);
 
-			nano_write_reg(addr, reg_data);
+			address = datagram[0];
+			((uint8_t*)&data)[1] = datagram[1];
+			((uint8_t*)&data)[0] = datagram[2];
+
+			nano_write_reg(address, data);
 		}
-		else	//handle read
-		{
-			reg_data = nano_read_reg(addr);
 
-			uart_write_byte(USART1, reg_bytes[1]);
-			uart_write_byte(USART1, reg_bytes[0]);
+		if((cdc_bytes_available() >= 1) && !(cdc_peek() & 0x80))	//handle read datagram
+		{
+			address = cdc_read_byte();
+
+			data = nano_read_reg(address);
+			datagram[0] = ((uint8_t*)&data)[1];
+			datagram[1] = ((uint8_t*)&data)[0];
+			cdc_write_bytes(datagram, 2);
+		}
+
+		if(prev_control_line_state != cdc_control_line_state)
+		{
+			cdc_set_serial_state(cdc_control_line_state & 3);
+			prev_control_line_state = cdc_control_line_state;
 		}
 	}
 }
