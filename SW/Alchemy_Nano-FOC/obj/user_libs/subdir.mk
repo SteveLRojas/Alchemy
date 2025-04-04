@@ -5,6 +5,7 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
 ../user_libs/ch32v203_core.c \
+../user_libs/ch32v203_exti.c \
 ../user_libs/ch32v203_gpio.c \
 ../user_libs/ch32v203_rcc.c \
 ../user_libs/ch32v203_spi.c \
@@ -17,6 +18,7 @@ C_SRCS += \
 
 OBJS += \
 ./user_libs/ch32v203_core.o \
+./user_libs/ch32v203_exti.o \
 ./user_libs/ch32v203_gpio.o \
 ./user_libs/ch32v203_rcc.o \
 ./user_libs/ch32v203_spi.o \
@@ -29,6 +31,7 @@ OBJS += \
 
 C_DEPS += \
 ./user_libs/ch32v203_core.d \
+./user_libs/ch32v203_exti.d \
 ./user_libs/ch32v203_gpio.d \
 ./user_libs/ch32v203_rcc.d \
 ./user_libs/ch32v203_spi.d \

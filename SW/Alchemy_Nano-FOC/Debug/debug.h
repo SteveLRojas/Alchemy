@@ -31,9 +31,9 @@ extern "C" {
 #define DEBUG   DEBUG_UART1
 #endif
 
-void Delay_Init(void);
-void Delay_Us(uint32_t n);
-void Delay_Ms(uint32_t n);
+void delay_init(void);
+void delay_us(uint32_t n);
+void delay_ms(uint32_t n);
 
 #if(DEBUG)
   #define PRINT(format, ...)    printf(format, ##__VA_ARGS__)

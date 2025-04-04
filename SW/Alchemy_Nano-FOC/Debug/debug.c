@@ -17,10 +17,6 @@
 #include "ch32v203_uart.h"
 #include "ch32v203_rcc.h"
 
-#if(DEBUG == DEBUG_CDC)
-#include "ch32v203_usbd_cdc.h"
-#endif
-
 static uint8_t  p_us = 0;
 static uint16_t p_ms = 0;
 /*********************************************************************
@@ -30,7 +26,7 @@ static uint16_t p_ms = 0;
  *
  * @return  none
  */
-void Delay_Init(void)
+void delay_init(void)
 {
     p_us = rcc_compute_hclk_freq() / 8000000;
     p_ms = (uint16_t)p_us * 1000;
@@ -45,7 +41,7 @@ void Delay_Init(void)
  *
  * @return  None
  */
-void Delay_Us(uint32_t n)
+void delay_us(uint32_t n)
 {
     uint32_t i;
 
@@ -69,7 +65,7 @@ void Delay_Us(uint32_t n)
  *
  * @return  None
  */
-void Delay_Ms(uint32_t n)
+void delay_ms(uint32_t n)
 {
     uint32_t i;
 
@@ -105,8 +101,6 @@ int _write(int fd, char* buf, int size)
 	uart_write_bytes(USART3, uart3_tx_fifo, (uint8_t*)buf, (uint16_t)size);
 #elif(DEBUG == DEBUG_UART4)
 	uart_write_bytes(USART4, uart4_tx_fifo, (uint8_t*)buf, (uint16_t)size);
-#elif(DEBUG == DEBUG_CDC)
-	cdc_write_bytes((uint8_t*)buf, (uint16_t)size);
 #endif
     return size;
 }
