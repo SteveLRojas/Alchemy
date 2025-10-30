@@ -196,7 +196,7 @@ uint16_t nano_read_reg(uint8_t addr)
 	spi_transfer(SPI1, 0x0000);
 	spi_transfer(SPI1, 0x0000);
 	gpio_set_pin(GPIOA, GPIO_PIN_15);
-	delay_us(1);
+	core_delay_us(1);
 
 	gpio_clear_pin(GPIOA, GPIO_PIN_15);
 	(void)spi_transfer(SPI1, addr);
@@ -221,7 +221,7 @@ int main(void)
 	gpio_set_pin(GPIOA, GPIO_PIN_15 | GPIO_PIN_10 | GPIO_PIN_7);	//SPI1_NCS high, pull-up USART1_RX, FOC_INT
 	gpio_set_pin(GPIOB, GPIO_PIN_4);	//pull-up SPI1_MISO
 
-	delay_init();
+	core_delay_init();
 	uart_init(USART1, 115200);
 	core_enable_irq(USART1_IRQn);
 

@@ -10,6 +10,26 @@ void fifo_init(fifo_t* fifo_inst, uint8_t* fifo_buf, uint16_t fifo_size)
 	fifo_inst->back = 0;
 }
 
+/*uint16_t fifo_num_used(fifo_t* fifo_inst)
+{
+	return fifo_inst->count;
+}
+
+uint16_t fifo_num_free(fifo_t* fifo_inst)
+{
+	return (fifo_inst->buf_size - fifo_inst->count);
+}
+
+uint8_t fifo_empty(fifo_t* fifo_inst)
+{
+	return fifo_inst->count == 0;
+}
+
+uint8_t fifo_full(fifo_t* fifo_inst)
+{
+	return fifo_inst->count >= fifo_inst->buf_size;
+}*/
+
 uint8_t fifo_push(fifo_t* fifo_inst, uint8_t val)
 {
 	if(fifo_full(fifo_inst))
@@ -40,6 +60,16 @@ uint8_t fifo_pop(fifo_t* fifo_inst)
 
 	return val;
 }
+
+/*uint8_t fifo_peek(fifo_t* fifo_inst)
+{
+	if(fifo_empty(fifo_inst))
+	{
+		return 0; // Nothing in FIFO
+	}
+
+	return fifo_inst->pbuf[fifo_inst->front];
+}*/
 
 uint8_t fifo_read(fifo_t* fifo_inst, uint8_t* dest, uint16_t num_bytes)
 {
