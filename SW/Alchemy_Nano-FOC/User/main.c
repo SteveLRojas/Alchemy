@@ -32,21 +32,18 @@
 #include "ch32v20x.h"
 #include "ch32v203_afio.h"
 #include "ch32v203_core.h"
-#include "debug.h"
+#include "ch32v203_dma.h"
 #include "ch32v203_exti.h"
 #include "ch32v203_gpio.h"
 #include "ch32v203_rcc.h"
 #include "ch32v203_spi.h"
-#include "fifo.h"
-#include "ch32v203_uart.h"
 #include "ch32v203_usbd_cdc.h"
+#include "debug.h"
 
 uint16_t nano_read_reg(uint8_t addr);
 
 //Pins:
 // FOC_INT = PA7
-// USART1_TX = PA9
-// USART1_RX = PA10
 // UDM = PA11
 // UDP = PA12
 // SPI1_NCS = PA15
@@ -55,18 +52,21 @@ uint16_t nano_read_reg(uint8_t addr);
 // SPI1_MOSI = PB5
 
 //FW registers
-// 0x7FFF to 7FF8:	Reserved
-// 0x7FF7:	RTMI Control
-// 0x7FF6:	RTMI Num Samples
-// 0x7FF5:	RTMI Threshold
-// 0x7FF4:	RTMI Channel 0
-// 0x7FF3:	RTMI Channel 1
-// 0x7FF2:	RTMI Channel 2
-// 0x7FF1:	RTMI Channel 3
-// 0x7FF0:	RTMI Channel 4
-// 0x7FEF:	RTMI Channel 5
-// 0x7FEE:	RTMI Channel 6
-// 0x7FED:	RTMI Channel 7
+// 0x7FFF: Device ID (low)
+// 0x7FFE: Device ID (high)
+// 0x7FFD: Unique ID (low)
+// 0x7FFC: Unique ID (high)
+// 0x7FFB:  RTMI Control
+// 0x7FFA:  RTMI Num Samples
+// 0x7FF9:  RTMI Threshold
+// 0x7FF8:  RTMI Channel 0
+// 0x7FF7:  RTMI Channel 1
+// 0x7FF6:  RTMI Channel 2
+// 0x7FF5:  RTMI Channel 3
+// 0x7FF4:  RTMI Channel 4
+// 0x7FF3:  RTMI Channel 5
+// 0x7FF2:  RTMI Channel 6
+// 0x7FF1:  RTMI Channel 7
 
 //RTMI Control Bitfields
 // 3:0:		Trigger Mode
@@ -209,24 +209,22 @@ uint16_t nano_read_reg(uint8_t addr)
 
 int main(void)
 {
-	rcc_apb2_clk_enable(RCC_AFIOEN | RCC_IOPAEN | RCC_IOPBEN | RCC_IOPCEN | RCC_TIM1EN | RCC_SPI1EN | RCC_USART1EN);
-	rcc_apb1_clk_enable(RCC_TIM2EN | RCC_USBEN | RCC_USART2EN);
+	rcc_apb2_clk_enable(RCC_AFIOEN | RCC_IOPAEN | RCC_IOPBEN | RCC_IOPCEN | RCC_TIM1EN | RCC_SPI1EN);
+	rcc_apb1_clk_enable(RCC_TIM2EN | RCC_USBEN);
+	rcc_ahb_clk_enable(RCC_DMA1EN);
 
-	gpio_set_mode(GPIOA, GPIO_DIR_SPD_OUT_50MHZ | GPIO_MODE_AFIO_PP, GPIO_PIN_9);	//USART1_TX
-	gpio_set_mode(GPIOA, GPIO_DIR_SPD_OUT_50MHZ | GPIO_MODE_PULL_IN, GPIO_PIN_10 | GPIO_PIN_7);	//USART1_RX, FOC_INT
+	gpio_set_mode(GPIOA, GPIO_DIR_SPD_OUT_50MHZ | GPIO_MODE_PULL_IN, GPIO_PIN_7);	//FOC_INT
 	gpio_set_mode(GPIOA, GPIO_DIR_SPD_OUT_50MHZ | GPIO_MODE_PP_OUT, GPIO_PIN_15);	//SPI1_NCS
 	gpio_set_mode(GPIOB, GPIO_DIR_SPD_OUT_50MHZ | GPIO_MODE_AFIO_PP, GPIO_PIN_3 | GPIO_PIN_5);	//SPI1_SCK, SPI1_MOSI
 	gpio_set_mode(GPIOB, GPIO_DIR_SPD_IN | GPIO_MODE_PULL_IN, GPIO_PIN_4);			//SPI1_MISO
 
-	gpio_set_pin(GPIOA, GPIO_PIN_15 | GPIO_PIN_10 | GPIO_PIN_7);	//SPI1_NCS high, pull-up USART1_RX, FOC_INT
+	gpio_set_pin(GPIOA, GPIO_PIN_15 | GPIO_PIN_7);	//SPI1_NCS high, FOC_INT
 	gpio_set_pin(GPIOB, GPIO_PIN_4);	//pull-up SPI1_MISO
 
 	core_delay_init();
-	uart_init(USART1, 115200);
-	core_enable_irq(USART1_IRQn);
 
 	cdc_init();
-	cdc_set_serial_state(0x03);
+	cdc_set_serial_state(CDC_SS_TXCARRIER | CDC_SS_RXCARRIER);
 	uint8_t prev_control_line_state = cdc_control_line_state;
 	while(!cdc_config);	//Wait for host to configure the CDC interface
     printf("Alchemy - Nano-FOC\n");
@@ -248,16 +246,6 @@ int main(void)
 	exti7_callback = on_foc_int;
 	core_enable_irq(EXTI9_5_IRQn);
 
-	if(uart_bytes_available(uart1_rx_fifo))
-	{
-		printf("There is something fishy in the UART1 RX buffer...\n");
-	}
-
-	if(cdc_bytes_available())
-	{
-		printf("There is something fishy in the CDC RX buffer...\n");
-	}
-
 	uint8_t datagram[4];
 	uint16_t datagram_val;
 	while(1)
@@ -273,37 +261,37 @@ int main(void)
 			{
 				switch(datagram[1])
 				{
-					case 0xF7:	//RTMI Control
+					case 0xFB:	//RTMI Control
 						fw_write_rtmi_control(datagram_val);
 						break;
-					case 0xF6:	//RTMI Num Samples
+					case 0xFA:	//RTMI Num Samples
 						rtmi_num_samples = datagram_val;
 						break;
-					case 0xF5:	//RTMI Threshold
+					case 0xF9:	//RTMI Threshold
 						rtmi_threshold = datagram_val;
 						break;
-					case 0xF4:	//RTMI Channel 0
+					case 0xF8:	//RTMI Channel 0
 						rtmi_channels[0] = datagram_val;
 						break;
-					case 0xF3:	//RTMI Channel 1
+					case 0xF7:	//RTMI Channel 1
 						rtmi_channels[1] = datagram_val;
 						break;
-					case 0xF2:	//RTMI Channel 2
+					case 0xF6:	//RTMI Channel 2
 						rtmi_channels[2] = datagram_val;
 						break;
-					case 0xF1:	//RTMI Channel 3
+					case 0xF5:	//RTMI Channel 3
 						rtmi_channels[3] = datagram_val;
 						break;
-					case 0xF0:	//RTMI Channel 4
+					case 0xF4:	//RTMI Channel 4
 						rtmi_channels[4] = datagram_val;
 						break;
-					case 0xEF:	//RTMI Channel 5
+					case 0xF3:	//RTMI Channel 5
 						rtmi_channels[5] = datagram_val;
 						break;
-					case 0xEE:	//RTMI Channel 6
+					case 0xF2:	//RTMI Channel 6
 						rtmi_channels[6] = datagram_val;
 						break;
-					case 0xED:	//RTMI Channel 7
+					case 0xF1:	//RTMI Channel 7
 						rtmi_channels[7] = datagram_val;
 						break;
 					default: ;
@@ -323,37 +311,49 @@ int main(void)
 			{
 				switch(datagram[1])
 				{
-					case 0xF7:	//RTMI Control
+					case 0xFF: //device_id_l
+						datagram_val = 0x464E;
+						break;
+					case 0xFE:	//device_id_h
+						datagram_val = 0x434F;
+						break;
+					case 0xFD:	//unique_id_l
+						datagram_val = *(volatile uint16_t*)0x1FFFF7E8;
+						break;
+					case 0xFC:	//unique_id_h
+						datagram_val = *(volatile uint16_t*)0x1FFFF7EA;
+						break;
+					case 0xFB:	//RTMI Control
 						datagram_val = rtmi_control;
 						break;
-					case 0xF6:	//RTMI Num Samples
+					case 0xFA:	//RTMI Num Samples
 						datagram_val = rtmi_num_samples;
 						break;
-					case 0xF5:	//RTMI Threshold
+					case 0xF9:	//RTMI Threshold
 						datagram_val = rtmi_threshold;
 						break;
-					case 0xF4:	//RTMI Channel 0
+					case 0xF8:	//RTMI Channel 0
 						datagram_val = rtmi_channels[0];
 						break;
-					case 0xF3:	//RTMI Channel 1
+					case 0xF7:	//RTMI Channel 1
 						datagram_val = rtmi_channels[1];
 						break;
-					case 0xF2:	//RTMI Channel 2
+					case 0xF6:	//RTMI Channel 2
 						datagram_val = rtmi_channels[2];
 						break;
-					case 0xF1:	//RTMI Channel 3
+					case 0xF5:	//RTMI Channel 3
 						datagram_val = rtmi_channels[3];
 						break;
-					case 0xF0:	//RTMI Channel 4
+					case 0xF4:	//RTMI Channel 4
 						datagram_val = rtmi_channels[4];
 						break;
-					case 0xEF:	//RTMI Channel 5
+					case 0xF3:	//RTMI Channel 5
 						datagram_val = rtmi_channels[5];
 						break;
-					case 0xEE:	//RTMI Channel 6
+					case 0xF2:	//RTMI Channel 6
 						datagram_val = rtmi_channels[6];
 						break;
-					case 0xED:	//RTMI Channel 7
+					case 0xF1:	//RTMI Channel 7
 						datagram_val = rtmi_channels[7];
 						break;
 					default: ;

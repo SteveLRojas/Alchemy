@@ -4785,11 +4785,11 @@
     (uuid fdcabf66-4d49-4263-81a1-aecfeec1eca6)
   )
 
-  (text "29.12.2023" (at 332.74 280.67 0)
+  (text "20.09.2025" (at 332.74 280.67 0)
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid 5e39ec82-9a71-47d5-b919-7a959e92919a)
   )
-  (text "Alchemy V1.0" (at 312.42 278.13 0)
+  (text "Alchemy V2.0B" (at 312.42 278.13 0)
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid b9190cc1-796e-4368-bde1-e3a32ed065fa)
   )

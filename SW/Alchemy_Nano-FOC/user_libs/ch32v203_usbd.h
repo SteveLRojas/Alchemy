@@ -14,6 +14,8 @@
 //Writing to the odd numbered words will write to the even numbered word at the even address below. Attempting to write single bytes writes to both bytes in the word.
 //PMA access is slower than memory access, avoid frequent access to the PMA.
 
+#define USBD_DMA_CHANNEL DMA1_Channel2
+
 typedef struct _USBD_ENDPOINT_ENTRY
 {
 	volatile uint16_t EPR;
@@ -187,6 +189,10 @@ extern volatile uint16_t sof_count;
 #define usbd_get_out_res(ep) (USBD_ENDPOINT[ep].EPR & USBD_STAT_RX)
 #define usbd_get_in_res(ep) (USBD_ENDPOINT[ep].EPR & USBD_STAT_TX)
 
+#define usbd_set_out_tog_res(ep, tog_res) (USBD_ENDPOINT[ep].EPR = (USBD_ENDPOINT[ep].EPR & ~(USBD_DTOG_TX | USBD_STAT_TX)) ^ (tog_res))
+#define usbd_set_in_tog_res(ep, tog_res) (USBD_ENDPOINT[ep].EPR = (USBD_ENDPOINT[ep].EPR & ~(USBD_DTOG_RX | USBD_STAT_RX)) ^ (tog_res))
+#define usbd_set_in_tog_out_res(ep, tog_res) (USBD_ENDPOINT[ep].EPR = (USBD_ENDPOINT[ep].EPR & ~(USBD_DTOG_RX | USBD_STAT_TX)) ^ (tog_res))
+#define usbd_set_out_tog_in_res(ep, tog_res) (USBD_ENDPOINT[ep].EPR = (USBD_ENDPOINT[ep].EPR & ~(USBD_STAT_RX | USBD_DTOG_TX)) ^ (tog_res))
 #define usbd_set_tog_res(ep, tog_res) (USBD_ENDPOINT[ep].EPR ^= (tog_res))
 
 //HINT: usbd_read_pma_word and usbd_write_pma_word take an offset in bytes (the offset must be an even number).
@@ -203,6 +209,8 @@ void usbd_init(const usbd_config_t* usbd_config);
 void usbd_disable(void);
 void usbd_write_to_pma(uint16_t offset, const uint16_t* source, uint16_t num_words);
 void usbd_read_from_pma(uint16_t offset, uint16_t* dest, uint16_t num_words);
+void usbd_write_bytes_to_pma(uint16_t byte_offset, const uint8_t* source, uint16_t num_bytes);
+void usbd_read_bytes_from_pma(uint16_t byte_offset, uint8_t* dest, uint16_t num_bytes);
 void usbd_init_pma_val(uint16_t offset, uint16_t val, uint16_t num_words);
 
 #endif /* USER_LIBS_CH32V203_USBD_H_ */

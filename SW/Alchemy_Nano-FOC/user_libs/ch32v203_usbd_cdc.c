@@ -7,10 +7,10 @@
 #include "ch32v20x.h"
 #include "ch32v203_usbd.h"
 #include "ch32v203_usbd_cdc.h"
-//TODO: what happens if EP_2 receives a zero length packet?
+
 //HINT: For double-buffered endpoints the CH32V203 reference manual does not say when the SW and HW toggles are compared. It also does not say when the STAT_RX/STAT_TX fields are updated and how the endpoint response is determined.
 //Here is my current understanding: A double buffered endpoint will respond with ACK only if the SW and HW toggles are different and the STAT_RX/STAT_TX field is set to ACK, otherwise the response is NAK or as specified by STAT_RX/STAT_TX.
-//At certain times the STAT_RX/STAT_TX field will be set to NAK by the hardware, this seems to happen when the CTR_RX/CTR_TX flag is cleared if the HW and SW toggles are equal.
+//At certain times the STAT_RX/STAT_TX field will be set to NAK by the hardware. For RX endpoints this seems to happen when the endpoint receives a packet if HW and SW toggles are equal.
 //Once the hardware sets the STAT_RX/STAT_TX field to NAK, the user must set it back to ACK before communication on the endpoint resumes.
 
 #define SET_LINE_CODING         0x20  // host configures line coding
@@ -85,7 +85,14 @@ uint16_t cdc_last_status_time;
 //HINT: RX rules:
 //1: If HW_toggle (EP_2 DTOG_RX) matches SW_toggle (EP_2 DTOG_TX) then move SW_toggle to match ep2_read_select when ep2_read_select changes.
 //2: If HW_toggle (EP_2 DTOG_RX) moves then update SW_toggle (EP_2 DTOG_TX) to match ep2_read_select.
-uint8_t ep2_read_select;
+//If ZLP handling is enabled rule 2 becomes:
+//2: If HW toggle (EP_2 DTOG_RX) moves then check rx_len. If rx_len == 0 then SW_toggle (EP_2 DTOG_TX) = !HW_toggle, else SW_toggle = ep2_read_select.
+#if CDC_HANDLE_ZLP
+volatile uint8_t ep2_t0_zlp;	//set when a ZLP is received in t0
+volatile uint8_t ep2_t1_zlp;
+#endif
+uint16_t ep2_out_res;
+volatile uint8_t ep2_read_select;
 volatile uint8_t ep2_t0_num_bytes;
 uint8_t ep2_t0_read_offset;
 volatile uint8_t ep2_t1_num_bytes;
@@ -102,16 +109,20 @@ volatile uint8_t ep3_t1_num_bytes;
 
 typedef struct _USB_SETUP_REQ
 {
-    uint8_t bRequestType;
-    uint8_t bRequest;
-    uint16_t wValue;
-    uint16_t wIndex;
-    uint16_t wLength;
+	uint8_t bRequestType;
+	uint8_t bRequest;
+	uint16_t wValue;
+	uint16_t wIndex;
+	uint16_t wLength;
 } usb_setup_req_t;
 
 usb_setup_req_t cdc_setup_buf __attribute__ ((aligned(2)));
 
 const uint8_t* descriptor_ptr;
+#if CDC_USE_UNIQUE_ID
+uint8_t cdc_string_serial_offset;
+#endif
+
 uint8_t cdc_address;
 volatile uint8_t cdc_config;
 
@@ -121,88 +132,88 @@ volatile uint8_t cdc_control_line_state = 0;
 /* USB Device Descriptors */
 static const uint8_t cdc_device_descriptor[] __attribute__ ((aligned(2))) =
 {
-    CDC_DEV_DESCR_SIZE,				// bLength
-    0x01,                           // bDescriptorType
-    0x10, 0x01,                     // bcdUSB
-    0x02,                           // bDeviceClass
-    0x00,                           // bDeviceSubClass
-    0x00,                           // bDeviceProtocol
-    CDC_ENDP0_SIZE,					// bMaxPacketSize0
-    0x86, 0x1A,                     // idVendor
-    0x0C, 0xFE,                     // idProduct
-    0x00, 0x01,                     // bcdDevice
-    0x01,                           // iManufacturer
-    0x02,                           // iProduct
-    0x03,                           // iSerialNumber
-    0x01,                           // bNumConfigurations
+	CDC_DEV_DESCR_SIZE,             // bLength
+	0x01,                           // bDescriptorType
+	0x10, 0x01,                     // bcdUSB
+	0x02,                           // bDeviceClass	(Communications Device Class)
+	0x00,                           // bDeviceSubClass
+	0x00,                           // bDeviceProtocol
+	CDC_ENDP0_SIZE,                 // bMaxPacketSize0
+	0x86, 0x1A,                     // idVendor
+	0x0C, 0xFE,                     // idProduct
+	0x00, 0x01,                     // bcdDevice
+	0x01,                           // iManufacturer
+	0x02,                           // iProduct
+	0x03,                           // iSerialNumber
+	0x01,                           // bNumConfigurations
 };
 
 /* USB Configuration Descriptors */
 static const uint8_t cdc_config_descriptor[] __attribute__ ((aligned(2))) =
 {
-    /* Configuration Descriptor */
-    0x09,                           // bLength
-    0x02,                           // bDescriptorType
-    CDC_CONF_DESCR_SIZE & 0xFF, CDC_CONF_DESCR_SIZE >> 8, // wTotalLength
-    0x02,                           // bNumInterfaces
-    0x01,                           // bConfigurationValue
-    0x00,                           // iConfiguration
-    0x80,                           // bmAttributes: Bus Powered
-    0x32,                           // MaxPower: 100mA
+	/* Configuration Descriptor */
+	0x09,                           // bLength
+	0x02,                           // bDescriptorType
+	CDC_CONF_DESCR_SIZE & 0xFF, CDC_CONF_DESCR_SIZE >> 8, // wTotalLength
+	0x02,                           // bNumInterfaces
+	0x01,                           // bConfigurationValue
+	0x00,                           // iConfiguration
+	0x80,                           // bmAttributes: Bus Powered
+	0x32,                           // MaxPower: 100mA
 
-    /* Interface 0 (CDC) descriptor */
-    0x09,                           // bLength
-    0x04,                           // bDescriptorType (Interface)
-    0x00,                           // bInterfaceNumber 0
-    0x00,                           // bAlternateSetting
-    0x01,                           // bNumEndpoints 1
-    0x02,                           // bInterfaceClass	(Communications Interface Class)
-    0x02,                           // bInterfaceSubClass	 (Abstract Control Model)
-    0x01,                           // bInterfaceProtocol	(AT Commands: V.250)
-    0x04,                           // iInterface (String Index)
+	/* Interface 0 (CDC) descriptor */
+	0x09,                           // bLength
+	0x04,                           // bDescriptorType (Interface)
+	0x00,                           // bInterfaceNumber 0
+	0x00,                           // bAlternateSetting
+	0x01,                           // bNumEndpoints 1
+	0x02,                           // bInterfaceClass	(Communications Interface Class)
+	0x02,                           // bInterfaceSubClass	 (Abstract Control Model)
+	0x01,                           // bInterfaceProtocol	(AT Commands: V.250)
+	0x04,                           // iInterface (String Index)
 
-    /* Functional Descriptors */
-    0x05, 0x24, 0x00, 0x10, 0x01,	//CDC Header Functional Descriptor (CDC 1.2)
+	/* Functional Descriptors */
+	0x05, 0x24, 0x00, 0x10, 0x01,   //CDC Header Functional Descriptor (CDC 1.2)
 
-    /* Length/management descriptor */
-    0x05, 0x24, 0x01, 0x00, 0x01,	//Call Management Functional Descriptor (interface 1)
-    0x04, 0x24, 0x02, 0x02,			//Abstract Control Management Functional Descriptor
-    0x05, 0x24, 0x06, 0x00, 0x01,	//Union Functional Descriptor (interface 0, interface 1)
+	/* Length/management descriptor */
+	0x05, 0x24, 0x01, 0x00, 0x01,   //Call Management Functional Descriptor (interface 1)
+	0x04, 0x24, 0x02, 0x02,         //Abstract Control Management Functional Descriptor
+	0x05, 0x24, 0x06, 0x00, 0x01,   //Union Functional Descriptor (interface 0, interface 1)
 
-    /* Interrupt upload endpoint descriptor */
-    0x07,                           // bLength
-    0x05,                           // bDescriptorType (Endpoint)
-    0x81,                           // bEndpointAddress (IN/D2H)
-    0x03,                           // bmAttributes (Interrupt)
-    CDC_ENDP1_SIZE & 0xFF, CDC_ENDP1_SIZE >> 8, // wMaxPacketSize
-    0x01,                           // bInterval 1 (unit depends on device speed)
+	/* Interrupt upload endpoint descriptor */
+	0x07,                           // bLength
+	0x05,                           // bDescriptorType (Endpoint)
+	0x81,                           // bEndpointAddress (IN/D2H)
+	0x03,                           // bmAttributes (Interrupt)
+	CDC_ENDP1_SIZE & 0xFF, CDC_ENDP1_SIZE >> 8, // wMaxPacketSize
+	0x01,                           // bInterval 1 (unit depends on device speed)
 
-    /* Interface 1 (data interface) descriptor */
-    0x09,                           // bLength
-    0x04,                           // bDescriptorType (Interface)
-    0x01,                           // bInterfaceNumber 1
-    0x00,                           // bAlternateSetting
-    0x02,                           // bNumEndpoints 2
-    0x0A,                           // bInterfaceClass	(Data Interface Class)
-    0x00,                           // bInterfaceSubClass
-    0x00,                           // bInterfaceProtocol
-    0x00,                           // iInterface (String Index)
+	/* Interface 1 (data interface) descriptor */
+	0x09,                           // bLength
+	0x04,                           // bDescriptorType (Interface)
+	0x01,                           // bInterfaceNumber 1
+	0x00,                           // bAlternateSetting
+	0x02,                           // bNumEndpoints 2
+	0x0A,                           // bInterfaceClass	(Data Interface Class)
+	0x00,                           // bInterfaceSubClass
+	0x00,                           // bInterfaceProtocol
+	0x00,                           // iInterface (String Index)
 
-    /* Endpoint descriptor */
-    0x07,                           // bLength
-    0x05,                           // bDescriptorType (Endpoint)
-    0x02,                           // bEndpointAddress (OUT/H2D)
-    0x02,                           // bmAttributes (Bulk)
-    CDC_ENDP2_SIZE & 0xFF, CDC_ENDP2_SIZE >> 8, // wMaxPacketSize
-    0x00,                           // bInterval 0 (unit depends on device speed)
+	/* Endpoint descriptor */
+	0x07,                           // bLength
+	0x05,                           // bDescriptorType (Endpoint)
+	0x02,                           // bEndpointAddress (OUT/H2D)
+	0x02,                           // bmAttributes (Bulk)
+	CDC_ENDP2_SIZE & 0xFF, CDC_ENDP2_SIZE >> 8, // wMaxPacketSize
+	0x00,                           // bInterval 0 (unit depends on device speed)
 
-    /* Endpoint descriptor */
-    0x07,                           // bLength
-    0x05,                           // bDescriptorType (Endpoint)
-    0x83,                           // bEndpointAddress (IN/D2H)
-    0x02,                           // bmAttributes (Bulk)
-    CDC_ENDP3_SIZE & 0xFF, CDC_ENDP3_SIZE >> 8, // wMaxPacketSize
-    0x00                            // bInterval 0 (unit depends on device speed)
+	/* Endpoint descriptor */
+	0x07,                           // bLength
+	0x05,                           // bDescriptorType (Endpoint)
+	0x83,                           // bEndpointAddress (IN/D2H)
+	0x02,                           // bmAttributes (Bulk)
+	CDC_ENDP3_SIZE & 0xFF, CDC_ENDP3_SIZE >> 8, // wMaxPacketSize
+	0x00                            // bInterval 0 (unit depends on device speed)
 };
 
 /* USB String Descriptors */
@@ -225,20 +236,66 @@ static const uint8_t cdc_string_vendor[] __attribute__ ((aligned(2))) =
 /* USB Device String Product */
 static const uint8_t cdc_string_product[] __attribute__ ((aligned(2))) =
 {
-    22,
-    0x03,
-    'U', 0, 'S', 0, 'B', 0, ' ', 0, 'S', 0, 'e', 0, 'r', 0, 'i', 0, 'a', 0, 'l', 0
+	22,
+	0x03,
+	'U', 0, 'S', 0, 'B', 0, ' ', 0, 'S', 0, 'e', 0, 'r', 0, 'i', 0, 'a', 0, 'l', 0
 };
 
 /* USB Device String Serial */
+#if CDC_USE_UNIQUE_ID
+static const uint8_t cdc_string_serial[] __attribute__ ((aligned(2))) = {22, 0x03};
+#else
 static const uint8_t cdc_string_serial[] __attribute__ ((aligned(2))) =
 {
 	22,
 	0x03,
 	'D', 0, 'E', 0, 'A', 0, 'D', 0, 'B', 0, 'E', 0 , 'E', 0, 'F', 0, '0', 0, '1', 0
 };
+#endif
 
 static const uint8_t cdc_serial_state[] __attribute__ ((aligned(2))) = {0xA1, 0x20, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00};
+
+#if CDC_USE_UNIQUE_ID
+void cdc_gen_string_serial(uint8_t len)
+{
+	uint16_t pma_offset = usbd_get_tx_buf_offset(EP_0);
+
+	if(cdc_string_serial_offset < 2)
+	{
+		usbd_write_pma_word(pma_offset, *(uint16_t*)cdc_string_serial);
+		pma_offset += 2;
+		cdc_string_serial_offset = 2;
+		len -= 2;
+	}
+
+	uint8_t hex_buf[CDC_ENDP0_SIZE] __attribute__ ((aligned(2)));
+	const uint8_t* unique_id = (uint8_t*)(0x1FFFF7E8);
+	uint8_t id_offset = cdc_string_serial_offset - 2;
+	uint8_t id_hex;
+	for(uint8_t idx = 0; idx < len; ++idx)
+	{
+		if(id_offset & 0x01)
+		{
+			hex_buf[idx] = 0x00;
+		}
+		else
+		{
+			id_hex = unique_id[id_offset >> 2];
+			if(id_offset & 0x02)
+				id_hex = id_hex >> 4;
+			id_hex &= 0x0F;
+			if(id_hex < 10)
+				id_hex += '0';
+			else
+				id_hex += 'A' - 10;
+			hex_buf[idx] = id_hex;
+		}
+		id_offset += 1;
+	}
+	usbd_write_to_pma(pma_offset, (uint16_t*)hex_buf, (len + 1) >> 1);
+	cdc_string_serial_offset += len;
+}
+#endif
 
 void cdc_on_sof(void)
 {
@@ -267,6 +324,11 @@ void cdc_on_sof(void)
 		usbd_set_tx_len(EP_1, CDC_SERIAL_STATE_SIZE);
 		usbd_set_in_res(EP_1, USBD_IN_RES_ACK);
 	}
+
+	if(usbd_get_out_res(EP_2) == USBD_OUT_RES_NAK)	//HINT: This here is a nasty hack to keep the EP_2 out res from getting stuck at NAK. Not sure why it happens.
+	{
+		usbd_set_out_res(EP_2, ep2_out_res);
+	}
 }
 
 void cdc_on_out(uint8_t ep)
@@ -283,6 +345,30 @@ void cdc_on_out(uint8_t ep)
 
 	if(ep == EP_2)
 	{
+#if CDC_HANDLE_ZLP
+		uint16_t ep2_out_tog = usbd_get_out_toggle(EP_2);
+		//auto-toggle is enabled, so here the toggle should point to the next buffer that will receive
+		if(ep2_out_tog)
+		{
+			ep2_t0_num_bytes = usbd_get_rx_0_len(EP_2);
+			ep2_t0_zlp = !ep2_t0_num_bytes;
+			//EP_2 response set to NAK automatically if IN toggle still points to t1 buffer.
+			if(ep2_t0_num_bytes)
+				usbd_set_in_toggle(EP_2, ep2_read_select ? USBD_IN_TOG_1 : USBD_IN_TOG_0);
+			else
+				usbd_set_in_toggle(EP_2, ep2_out_tog ? USBD_IN_TOG_0 : USBD_IN_TOG_1);
+		}
+		else
+		{
+			ep2_t1_num_bytes = usbd_get_rx_1_len(EP_2);
+			ep2_t1_zlp = !ep2_t1_num_bytes;
+			//EP_2 response set to NAK automatically if IN toggle still points to t0 buffer.
+			if(ep2_t1_num_bytes)
+				usbd_set_in_toggle(EP_2, ep2_read_select ? USBD_IN_TOG_1 : USBD_IN_TOG_0);
+			else
+				usbd_set_in_toggle(EP_2, ep2_out_tog ? USBD_IN_TOG_0 : USBD_IN_TOG_1);
+		}
+#else
 		//auto-toggle is enabled, so here the toggle should point to the next buffer that will receive
 		if(usbd_get_out_toggle(EP_2))
 		{
@@ -295,6 +381,7 @@ void cdc_on_out(uint8_t ep)
 			//EP_2 response set to NAK automatically if IN toggle still points to t0 buffer.
 		}
 		usbd_set_in_toggle(EP_2, ep2_read_select ? USBD_IN_TOG_1 : USBD_IN_TOG_0);
+#endif
 	}
 }
 
@@ -310,8 +397,20 @@ void cdc_on_in(uint8_t ep)
 			{
 			case USB_GET_DESCRIPTOR:
 				len = cdc_setup_buf.wLength >= CDC_ENDP0_SIZE ? CDC_ENDP0_SIZE : cdc_setup_buf.wLength;
+#if CDC_USE_UNIQUE_ID
+				if(cdc_string_serial_offset)
+				{
+					cdc_gen_string_serial(len);
+				}
+				else
+				{
+					usbd_write_to_pma(usbd_get_tx_buf_offset(EP_0), (uint16_t*)descriptor_ptr, (len + 1) >> 1);
+					descriptor_ptr += len;
+				}
+#else
 				usbd_write_to_pma(usbd_get_tx_buf_offset(EP_0), (uint16_t*)descriptor_ptr, (len + 1) >> 1);
 				descriptor_ptr += len;
+#endif
 				cdc_setup_buf.wLength -= len;
 				usbd_set_tx_len(EP_0, len);
 				usbd_set_in_res(EP_0, USBD_IN_RES_ACK);
@@ -367,6 +466,9 @@ void cdc_on_setup(uint8_t ep)
 	{
 		usbd_read_from_pma(usbd_get_rx_buf_offset(EP_0), (uint16_t*)(&cdc_setup_buf), 4);
 		descriptor_ptr = 0;
+#if CDC_USE_UNIQUE_ID
+		cdc_string_serial_offset = 0;
+#endif
 		len = 0;
 
 		if((cdc_setup_buf.bRequestType & USB_REQ_TYP_MASK) == USB_REQ_TYP_STANDARD)
@@ -383,16 +485,14 @@ void cdc_on_setup(uint8_t ep)
 					switch((uint8_t)(cdc_setup_buf.wIndex))
 					{
 					case 0x81:
-						usbd_set_in_toggle(EP_1, USBD_IN_TOG_0);
-						usbd_set_in_res(EP_1, USBD_IN_RES_NAK);
+						usbd_set_in_tog_res(EP_1, USBD_IN_TOG_0 | USBD_IN_RES_NAK);
 						break;
 					case 0x02:
-						usbd_set_out_toggle(EP_2, USBD_OUT_TOG_0);
-						usbd_set_out_res(EP_2, USBD_OUT_RES_ACK);
+						ep2_out_res = USBD_OUT_RES_ACK;
+						usbd_set_out_tog_res(EP_2, USBD_OUT_TOG_0 | USBD_OUT_RES_ACK);
 						break;
 					case 0x83:
-						usbd_set_in_toggle(EP_3, USBD_IN_TOG_0);
-						usbd_set_in_res(EP_3, USBD_IN_RES_NAK);
+						usbd_set_in_tog_res(EP_3, USBD_IN_TOG_0 | USBD_IN_RES_NAK);
 						break;
 					default:
 						len = 0xFF;
@@ -409,16 +509,14 @@ void cdc_on_setup(uint8_t ep)
 					switch((uint8_t)(cdc_setup_buf.wIndex))
 					{
 					case 0x81:
-						usbd_set_in_toggle(EP_1, USBD_IN_TOG_0);
-						usbd_set_in_res(EP_1, USBD_IN_RES_STALL);
+						usbd_set_in_tog_res(EP_1, USBD_IN_TOG_0 | USBD_IN_RES_STALL);
 						break;
 					case 0x02:
-						usbd_set_out_toggle(EP_2, USBD_OUT_TOG_0);
-						usbd_set_out_res(EP_2, USBD_OUT_RES_STALL);
+						ep2_out_res = USBD_OUT_RES_STALL;
+						usbd_set_out_tog_res(EP_2, USBD_OUT_TOG_0 | USBD_OUT_RES_STALL);
 						break;
 					case 0x83:
-						usbd_set_in_toggle(EP_3, USBD_IN_TOG_0);
-						usbd_set_in_res(EP_3, USBD_IN_RES_STALL);
+						usbd_set_in_tog_res(EP_3, USBD_IN_TOG_0 | USBD_IN_RES_STALL);
 						break;
 					default:
 						len = 0xFF;
@@ -457,12 +555,15 @@ void cdc_on_setup(uint8_t ep)
 							break;
 						case 3:
 							descriptor_ptr = cdc_string_serial;
+#if CDC_USE_UNIQUE_ID
+							cdc_string_serial_offset = 0xFF;
+#endif
 							break;
 						case 4:
 							descriptor_ptr = cdc_string_product;
 							break;
 						default:
-							descriptor_ptr = cdc_string_serial;
+							descriptor_ptr = cdc_string_product;
 							break;
 					}
 					len = descriptor_ptr[0];
@@ -526,11 +627,24 @@ void cdc_on_setup(uint8_t ep)
 				cdc_setup_buf.wLength = len;
 			len = (cdc_setup_buf.wLength > CDC_ENDP0_SIZE) ? CDC_ENDP0_SIZE : cdc_setup_buf.wLength;
 
+#if CDC_USE_UNIQUE_ID
+			if(cdc_string_serial_offset)
+			{
+				cdc_string_serial_offset = 0;
+				cdc_gen_string_serial(len);
+			}
+			else if(descriptor_ptr)
+			{
+				usbd_write_to_pma(usbd_get_tx_buf_offset(EP_0), (uint16_t*)descriptor_ptr, (len + 1) >> 1);
+				descriptor_ptr += len;
+			}
+#else
 			if(descriptor_ptr)
 			{
 				usbd_write_to_pma(usbd_get_tx_buf_offset(EP_0), (uint16_t*)descriptor_ptr, (len + 1) >> 1);
 				descriptor_ptr += len;
 			}
+#endif
 
 			cdc_setup_buf.wLength -= len;
 			usbd_set_tx_len(EP_0, len);
@@ -541,6 +655,10 @@ void cdc_on_setup(uint8_t ep)
 
 void cdc_on_rst(void)
 {
+#if CDC_HANDLE_ZLP
+	ep2_t0_zlp = 0;
+	ep2_t1_zlp = 0;
+#endif
 	ep2_read_select = 0;	//EP_2 IN toggle must be initialized to 1 (RX initially enabled)
 	ep2_t0_num_bytes = 0;
 	ep2_t0_read_offset = 0;
@@ -552,6 +670,7 @@ void cdc_on_rst(void)
 	ep3_t0_num_bytes = 0;
 	ep3_t1_num_bytes = 0;
 
+	ep2_out_res = USBD_OUT_RES_ACK;
 	usbd_set_tog_res(EP_0, USBD_OUT_RES_ACK | USBD_IN_RES_NAK | USBD_OUT_TOG_0 | USBD_IN_TOG_0);
 	usbd_set_tog_res(EP_1, USBD_OUT_RES_ACK | USBD_IN_RES_NAK | USBD_OUT_TOG_0 | USBD_IN_TOG_0);
 	usbd_set_tog_res(EP_2, USBD_OUT_RES_ACK | USBD_IN_RES_DISABLED | USBD_OUT_TOG_0 | USBD_IN_TOG_1);
@@ -559,73 +678,8 @@ void cdc_on_rst(void)
 
 	cdc_last_data_time = 0;
 	cdc_last_status_time = 0;
-	cdc_config = 0;
 	sof_count = 0;
-}
-
-//TODO: move these functions to the USBD library and use the DMA controller
-void usbd_write_bytes_to_pma(uint16_t byte_offset, const uint8_t* source, uint16_t num_bytes)
-{
-	uint16_t* pma = (uint16_t*)(USBD_PMA_BASE + ((byte_offset & 0xFFFE) << 1));
-	uint16_t num_words;
-	uint16_t pma_word;
-
-	if(byte_offset & 0x01)
-	{
-		pma_word = *pma;
-		((uint8_t*)(&pma_word))[1] = *source;
-		*pma = pma_word;
-		--num_bytes;
-		pma += 2;
-		++source;
-	}
-
-	num_words = num_bytes >> 1;
-	while(num_words--)
-	{
-		((uint8_t*)(&pma_word))[0] = *source;
-		++source;
-		((uint8_t*)(&pma_word))[1] = *source;
-		++source;
-		*pma = pma_word;
-		pma += 2;
-	}
-
-	if(num_bytes & 0x01)
-	{
-		*pma = (uint16_t)(*source);
-	}
-}
-
-void usbd_read_bytes_from_pma(uint16_t byte_offset, uint8_t* dest, uint16_t num_bytes)
-{
-	uint16_t* pma = (uint16_t*)(USBD_PMA_BASE + ((byte_offset & 0xFFFE) << 1));
-	uint16_t num_words;
-	uint16_t pma_word;
-
-	if(byte_offset & 0x01)
-	{
-		*dest = (uint8_t)(*pma >> 8);
-		--num_bytes;
-		pma += 2;
-		++dest;
-	}
-
-	num_words = num_bytes >> 1;
-	while(num_words--)
-	{
-		pma_word = *pma;
-		*dest = ((uint8_t*)(&pma_word))[0];
-		++dest;
-		*dest = ((uint8_t*)(&pma_word))[1];
-		++dest;
-		pma += 2;
-	}
-
-	if(num_bytes & 0x01)
-	{
-		*dest = (uint8_t)(*pma);
-	}
+	cdc_config = 0;
 }
 
 static const usbd_config_t usbd_config =
@@ -648,8 +702,8 @@ void cdc_init(void)
 	usbd_suspend_callback = 0;
 
 	usbd_init(&usbd_config);
-	cdc_config = 0;
 	cdc_set_serial_state(0x00);
+	cdc_config = 0;
 }
 
 void cdc_set_serial_state(uint8_t val)
@@ -671,6 +725,26 @@ uint8_t cdc_peek(void)
 {
 	uint16_t pma_word;
 	uint8_t byte_select;
+#if CDC_HANDLE_ZLP
+	if(ep2_read_select && ep2_t1_zlp)
+	{
+		ep2_t1_zlp = 0;
+		ep2_read_select = 0;
+		if((usbd_get_out_toggle(EP_2) != 0) == (usbd_get_in_toggle(EP_2) != 0))
+		{
+			usbd_set_in_tog_out_res(EP_2, USBD_OUT_RES_ACK | USBD_IN_TOG_0);
+		}
+	}
+	else if(!ep2_read_select && ep2_t0_zlp)
+	{
+		ep2_t0_zlp = 0;
+		ep2_read_select = 1;
+		if((usbd_get_out_toggle(EP_2) != 0) == (usbd_get_in_toggle(EP_2) != 0))
+		{
+			usbd_set_in_tog_out_res(EP_2, USBD_OUT_RES_ACK | USBD_IN_TOG_1);
+		}
+	}
+#endif
 
 	if(ep2_read_select)
 	{
@@ -692,6 +766,27 @@ uint8_t cdc_read_byte(void)
 
 	while(!cdc_bytes_available());
 
+#if CDC_HANDLE_ZLP
+	if(ep2_read_select && ep2_t1_zlp)
+	{
+		ep2_t1_zlp = 0;
+		ep2_read_select = 0;
+		if((usbd_get_out_toggle(EP_2) != 0) == (usbd_get_in_toggle(EP_2) != 0))
+		{
+			usbd_set_in_tog_out_res(EP_2, USBD_OUT_RES_ACK | USBD_IN_TOG_0);
+		}
+	}
+	else if(!ep2_read_select && ep2_t0_zlp)
+	{
+		ep2_t0_zlp = 0;
+		ep2_read_select = 1;
+		if((usbd_get_out_toggle(EP_2) != 0) == (usbd_get_in_toggle(EP_2) != 0))
+		{
+			usbd_set_in_tog_out_res(EP_2, USBD_OUT_RES_ACK | USBD_IN_TOG_1);
+		}
+	}
+#endif
+
 	if(ep2_read_select)
 	{
 		pma_word = usbd_read_pma_word(usbd_get_rx_1_buf_offset(EP_2) + (ep2_t1_read_offset & 0xFE));
@@ -702,10 +797,9 @@ uint8_t cdc_read_byte(void)
 			ep2_t1_read_offset = 0;
 			ep2_t1_num_bytes = 0;
 			ep2_read_select = 0;
-			if((usbd_get_out_toggle(EP_2) && usbd_get_in_toggle(EP_2)) || (!usbd_get_out_toggle(EP_2) && !usbd_get_in_toggle(EP_2)))
+			if((usbd_get_out_toggle(EP_2) != 0) == (usbd_get_in_toggle(EP_2) != 0))
 			{
-				usbd_set_in_toggle(EP_2, USBD_IN_TOG_0);
-				usbd_set_out_res(EP_2, USBD_OUT_RES_ACK);
+				usbd_set_in_tog_out_res(EP_2, USBD_OUT_RES_ACK | USBD_IN_TOG_0);
 			}
 		}
 	}
@@ -719,10 +813,9 @@ uint8_t cdc_read_byte(void)
 			ep2_t0_read_offset = 0;
 			ep2_t0_num_bytes = 0;
 			ep2_read_select = 1;
-			if((usbd_get_out_toggle(EP_2) && usbd_get_in_toggle(EP_2)) || (!usbd_get_out_toggle(EP_2) && !usbd_get_in_toggle(EP_2)))
+			if((usbd_get_out_toggle(EP_2) != 0) == (usbd_get_in_toggle(EP_2) != 0))
 			{
-				usbd_set_in_toggle(EP_2, USBD_IN_TOG_1);
-				usbd_set_out_res(EP_2, USBD_OUT_RES_ACK);
+				usbd_set_in_tog_out_res(EP_2, USBD_OUT_RES_ACK | USBD_IN_TOG_1);
 			}
 		}
 	}
@@ -739,7 +832,20 @@ void cdc_read_bytes(uint8_t* dest, uint16_t num_bytes)
 		{
 			num_to_read = ep2_t1_num_bytes - ep2_t1_read_offset;
 			if(!num_to_read)
+			{
+#if CDC_HANDLE_ZLP
+				if(ep2_t1_zlp)
+				{
+					ep2_t1_zlp = 0;
+					ep2_read_select = 0;
+					if((usbd_get_out_toggle(EP_2) != 0) == (usbd_get_in_toggle(EP_2) != 0))
+					{
+						usbd_set_in_tog_out_res(EP_2, USBD_OUT_RES_ACK | USBD_IN_TOG_0);
+					}
+				}
+#endif
 				continue;
+			}
 			if(num_to_read > num_bytes)
 			{
 				num_to_read = num_bytes;
@@ -755,10 +861,9 @@ void cdc_read_bytes(uint8_t* dest, uint16_t num_bytes)
 				ep2_t1_read_offset = 0;
 				ep2_t1_num_bytes = 0;
 				ep2_read_select = 0;
-				if((usbd_get_out_toggle(EP_2) && usbd_get_in_toggle(EP_2)) || (!usbd_get_out_toggle(EP_2) && !usbd_get_in_toggle(EP_2)))
+				if((usbd_get_out_toggle(EP_2) != 0) == (usbd_get_in_toggle(EP_2) != 0))
 				{
-					usbd_set_in_toggle(EP_2, USBD_IN_TOG_0);
-					usbd_set_out_res(EP_2, USBD_OUT_RES_ACK);
+					usbd_set_in_tog_out_res(EP_2, USBD_OUT_RES_ACK | USBD_IN_TOG_0);
 				}
 			}
 		}
@@ -766,7 +871,20 @@ void cdc_read_bytes(uint8_t* dest, uint16_t num_bytes)
 		{
 			num_to_read = ep2_t0_num_bytes - ep2_t0_read_offset;
 			if(!num_to_read)
+			{
+#if CDC_HANDLE_ZLP
+				if(ep2_t0_zlp)
+				{
+					ep2_t0_zlp = 0;
+					ep2_read_select = 1;
+					if((usbd_get_out_toggle(EP_2) != 0) == (usbd_get_in_toggle(EP_2) != 0))
+					{
+						usbd_set_in_tog_out_res(EP_2, USBD_OUT_RES_ACK | USBD_IN_TOG_1);
+					}
+				}
+#endif
 				continue;
+			}
 			if(num_to_read > num_bytes)
 			{
 				num_to_read = num_bytes;
@@ -782,10 +900,9 @@ void cdc_read_bytes(uint8_t* dest, uint16_t num_bytes)
 				ep2_t0_read_offset = 0;
 				ep2_t0_num_bytes = 0;
 				ep2_read_select = 1;
-				if((usbd_get_out_toggle(EP_2) && usbd_get_in_toggle(EP_2)) || (!usbd_get_out_toggle(EP_2) && !usbd_get_in_toggle(EP_2)))
+				if((usbd_get_out_toggle(EP_2) != 0) == (usbd_get_in_toggle(EP_2) != 0))
 				{
-					usbd_set_in_toggle(EP_2, USBD_IN_TOG_1);
-					usbd_set_out_res(EP_2, USBD_OUT_RES_ACK);
+					usbd_set_in_tog_out_res(EP_2, USBD_OUT_RES_ACK | USBD_IN_TOG_1);
 				}
 			}
 		}
@@ -921,4 +1038,16 @@ void cdc_write_bytes(const uint8_t* src, uint16_t num_bytes)
 		}
 	}
 	ep3_wip = 0;
+}
+
+void cdc_write_string(const char* src)
+{
+	uint16_t len = 0;
+	const char* src_copy = src;
+	while(*src_copy)
+	{
+		++len;
+		++src_copy;
+	}
+	cdc_write_bytes(src, len);
 }
