@@ -1,0 +1,6 @@
+eclipse.preferences.version=1
+encoding//User/main.c=GBK
+encoding//user_libs/ch32v203_spi.c=GBK
+encoding//user_libs/ch32v203_usbd_cdc.c=GBK
+encoding//user_libs/ch32v203_usbd_cdc.h=GBK
+encoding//user_libs/ch32v20x.h=UTF-8
