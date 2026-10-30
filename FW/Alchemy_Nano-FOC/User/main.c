@@ -96,11 +96,13 @@ uint8_t trigger_channel = 0;
 uint8_t num_channels = 0;
 uint16_t rtmi_sample_count = 0;
 
+uint8_t rtmi_buf_idx = 0;
+uint8_t rtmi_buffer[4 * 3 * 8] __attribute__ ((aligned(2)));	//buffer 4 RTMI packets, 3 bytes per channel, up to 8 channels
+
 void on_foc_int(void)
 {
 	uint16_t read_val;
 	uint8_t channel_idx;
-	uint8_t datagram[3];
 
 	if(rtmi_control & 0x8000)	//waiting for trigger
 	{
@@ -150,10 +152,9 @@ void on_foc_int(void)
 		for(channel_idx = 0; channel_idx < num_channels; ++channel_idx)
 		{
 			read_val = nano_read_reg(rtmi_channels[channel_idx]);
-			datagram[0] = channel_idx;
-			datagram[1] = ((uint8_t*)&read_val)[1];
-			datagram[2] = ((uint8_t*)&read_val)[0];
-			cdc_write_bytes(datagram, 3);
+			rtmi_buffer[rtmi_buf_idx++] = channel_idx;
+			rtmi_buffer[rtmi_buf_idx++] = ((uint8_t*)&read_val)[1];
+			rtmi_buffer[rtmi_buf_idx++] = ((uint8_t*)&read_val)[0];
 		}
 
 		rtmi_sample_count += 1;
@@ -235,7 +236,7 @@ int main(void)
 	printf("PCLK2: %u\n", rcc_compute_pclk2_freq());
 	printf("ADCCLK: %u\n", rcc_compute_adcclk());
 
-	spi_init(SPI1, SPI_8_BIT | SPI_CLK_DIV_8 | SPI_MODE_1);
+	spi_init(SPI1, SPI_8_BIT | SPI_CLK_DIV_4 | SPI_MODE_1);
 	afio_pcfr1_remap(AFIO_PCFR1_SPI1_REMAP);
 
 	afio_exti_config(AFIO_PORT_A, AFIO_PIN_7);
@@ -246,11 +247,16 @@ int main(void)
 	exti7_callback = on_foc_int;
 	core_enable_irq(EXTI9_5_IRQn);
 
+	uint8_t bytes_available;
+	uint8_t peek;
 	uint8_t datagram[4];
 	uint16_t datagram_val;
 	while(1)
 	{
-		if((cdc_bytes_available() >= 4) && (cdc_peek() & 0x80))	//Handle write datagram
+		bytes_available = cdc_bytes_available();
+		peek = cdc_peek();
+
+		if((bytes_available >= 4) && (peek & 0x80))	//Handle write datagram
 		{
 			cdc_read_bytes(datagram, 4);
 
@@ -299,11 +305,12 @@ int main(void)
 			}
 			else	//Handle access to device register
 			{
+				exti_disable_interrupt(EXTI_CHAN_7);
 				nano_write_reg(datagram[1] | 0x80, datagram_val);
+				exti_enable_interrupt(EXTI_CHAN_7);
 			}
 		}
-
-		if((cdc_bytes_available() >= 2) && !(cdc_peek() & 0x80))	//handle read datagram
+		else if((bytes_available >= 2) && !(peek & 0x80))	//handle read datagram
 		{
 			cdc_read_bytes(datagram, 2);
 
@@ -366,12 +373,24 @@ int main(void)
 			}
 			else	//Handle access to device register
 			{
+				exti_disable_interrupt(EXTI_CHAN_7);
 				datagram_val = nano_read_reg(datagram[1] & 0x7F);
+				exti_enable_interrupt(EXTI_CHAN_7);
 				datagram[0] = 0x80;
 				datagram[1] = ((uint8_t*)&datagram_val)[1];
 				datagram[2] = ((uint8_t*)&datagram_val)[0];
 				cdc_write_bytes(datagram, 3);
 			}
+		}
+		else if(bytes_available)	//datagrams not received in a single transfer are discarded
+		{
+			cdc_read_bytes(datagram, bytes_available);	//get rid of the extra bytes
+		}
+
+		if(rtmi_buf_idx)
+		{
+			cdc_write_bytes(rtmi_buffer, rtmi_buf_idx);
+			rtmi_buf_idx = 0;
 		}
 
 		if(prev_control_line_state != cdc_control_line_state)
