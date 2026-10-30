@@ -149,13 +149,30 @@ void on_foc_int(void)
 
 	if(rtmi_control & 0x6000)	//triggered or in continuous sampling mode
 	{
-		for(channel_idx = 0; channel_idx < num_channels; ++channel_idx)
+		gpio_clear_pin(GPIOA, GPIO_PIN_15);
+		spi_transfer(SPI1, rtmi_channels[0]);
+		spi_transfer(SPI1, 0x0000);
+		spi_transfer(SPI1, 0x0000);
+
+		for(channel_idx = 0; channel_idx < (num_channels - 1); ++channel_idx)
 		{
-			read_val = nano_read_reg(rtmi_channels[channel_idx]);
 			rtmi_buffer[rtmi_buf_idx++] = channel_idx;
-			rtmi_buffer[rtmi_buf_idx++] = ((uint8_t*)&read_val)[1];
-			rtmi_buffer[rtmi_buf_idx++] = ((uint8_t*)&read_val)[0];
+			gpio_set_pin(GPIOA, GPIO_PIN_15);
+			core_delay_us(1);
+			gpio_clear_pin(GPIOA, GPIO_PIN_15);
+			(void)spi_transfer(SPI1, rtmi_channels[channel_idx + 1]);
+			rtmi_buffer[rtmi_buf_idx++] = (uint8_t)spi_transfer(SPI1, 0x0000);
+			rtmi_buffer[rtmi_buf_idx++] = (uint8_t)spi_transfer(SPI1, 0x0000);
 		}
+
+		rtmi_buffer[rtmi_buf_idx++] = channel_idx;
+		gpio_set_pin(GPIOA, GPIO_PIN_15);
+		core_delay_us(1);
+		gpio_clear_pin(GPIOA, GPIO_PIN_15);
+		(void)spi_transfer(SPI1, 0x0000);
+		rtmi_buffer[rtmi_buf_idx++] = (uint8_t)spi_transfer(SPI1, 0x0000);
+		rtmi_buffer[rtmi_buf_idx++] = (uint8_t)spi_transfer(SPI1, 0x0000);
+		gpio_set_pin(GPIOA, GPIO_PIN_15);
 
 		rtmi_sample_count += 1;
 		if(rtmi_sample_count == rtmi_num_samples)	//done capturing
@@ -190,7 +207,7 @@ void nano_write_reg(uint8_t addr, uint16_t data)
 
 uint16_t nano_read_reg(uint8_t addr)
 {
-	uint32_t read_val;
+	uint16_t read_val;
 
 	gpio_clear_pin(GPIOA, GPIO_PIN_15);
 	spi_transfer(SPI1, addr);
