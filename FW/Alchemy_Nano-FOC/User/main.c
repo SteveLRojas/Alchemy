@@ -40,6 +40,8 @@
 #include "ch32v203_usbd_cdc.h"
 #include "debug.h"
 
+#define RTMI_USE_FAST_CS_HACK 1
+
 uint16_t nano_read_reg(uint8_t addr);
 
 //Pins:
@@ -89,7 +91,7 @@ uint16_t nano_read_reg(uint8_t addr);
 uint16_t rtmi_control = 0;
 uint16_t rtmi_num_samples = 0;
 uint16_t rtmi_threshold = 0;
-uint8_t rtmi_channels[8];
+uint8_t rtmi_channels[8 + 2] = {0};	//2 extra because RTMI ISR may read out of range
 
 uint8_t trigger_mode = 0;
 uint8_t trigger_channel = 0;
@@ -149,12 +151,42 @@ void on_foc_int(void)
 
 	if(rtmi_control & 0x6000)	//triggered or in continuous sampling mode
 	{
+#if RTMI_USE_FAST_CS_HACK
+		gpio_clear_pin(GPIOA, GPIO_PIN_15);
+		spi_transfer(SPI1, rtmi_channels[0]);
+		spi_transfer(SPI1, 0x0000);
+		spi_transfer(SPI1, 0x0000);
+		gpio_set_pin(GPIOA, GPIO_PIN_15);
+		core_nop();
+		core_nop();
+		core_nop();
+		core_nop();
+		gpio_clear_pin(GPIOA, GPIO_PIN_15);	//CS pulse too short, SPI controller gets old data
+		spi_transfer(SPI1, rtmi_channels[1]);
+		spi_transfer(SPI1, 0x0000);
+		spi_transfer(SPI1, 0x0000);
+
+		for(channel_idx = 0; channel_idx < num_channels; ++channel_idx)
+		{
+			rtmi_buffer[rtmi_buf_idx++] = channel_idx;
+			gpio_set_pin(GPIOA, GPIO_PIN_15);
+			core_nop();
+			core_nop();
+			core_nop();
+			core_nop();
+			gpio_clear_pin(GPIOA, GPIO_PIN_15);
+			(void)spi_transfer(SPI1, rtmi_channels[channel_idx + 2]);
+			rtmi_buffer[rtmi_buf_idx++] = (uint8_t)spi_transfer(SPI1, 0x0000);
+			rtmi_buffer[rtmi_buf_idx++] = (uint8_t)spi_transfer(SPI1, 0x0000);
+		}
+		gpio_set_pin(GPIOA, GPIO_PIN_15);
+#else
 		gpio_clear_pin(GPIOA, GPIO_PIN_15);
 		spi_transfer(SPI1, rtmi_channels[0]);
 		spi_transfer(SPI1, 0x0000);
 		spi_transfer(SPI1, 0x0000);
 
-		for(channel_idx = 0; channel_idx < (num_channels - 1); ++channel_idx)
+		for(channel_idx = 0; channel_idx < num_channels; ++channel_idx)
 		{
 			rtmi_buffer[rtmi_buf_idx++] = channel_idx;
 			gpio_set_pin(GPIOA, GPIO_PIN_15);
@@ -164,15 +196,8 @@ void on_foc_int(void)
 			rtmi_buffer[rtmi_buf_idx++] = (uint8_t)spi_transfer(SPI1, 0x0000);
 			rtmi_buffer[rtmi_buf_idx++] = (uint8_t)spi_transfer(SPI1, 0x0000);
 		}
-
-		rtmi_buffer[rtmi_buf_idx++] = channel_idx;
 		gpio_set_pin(GPIOA, GPIO_PIN_15);
-		core_delay_us(1);
-		gpio_clear_pin(GPIOA, GPIO_PIN_15);
-		(void)spi_transfer(SPI1, 0x0000);
-		rtmi_buffer[rtmi_buf_idx++] = (uint8_t)spi_transfer(SPI1, 0x0000);
-		rtmi_buffer[rtmi_buf_idx++] = (uint8_t)spi_transfer(SPI1, 0x0000);
-		gpio_set_pin(GPIOA, GPIO_PIN_15);
+#endif
 
 		rtmi_sample_count += 1;
 		if(rtmi_sample_count == rtmi_num_samples)	//done capturing
